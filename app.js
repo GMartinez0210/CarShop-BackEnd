@@ -10,8 +10,6 @@ const session = require("express-session")
 const passport = require("passport")
 const passportLocalMongoose = require("passport-local-mongoose")
 
-const round = +process.env.ROUND_HASH
-
 const url = process.env.HOST
 const option = {useNewUrlParser: true}
 
@@ -23,7 +21,7 @@ mongoose.connect(url, option, error => {
 
     console.log("Connected to the database")
 })
-mongoose.set("autoIndex", true)
+//mongoose.set("autoIndex", true)
 
 const User = require("./model/user")
 
@@ -63,11 +61,13 @@ app.post("/api/login", function(req, res) {
     User.find({email: email}, function(error, foundUser) {
         if(error) {
             console.log(error)
+            res.json({error: true})
             return
         }
 
         if (foundUser.length == 0) {
-            res.send("Not found the user")
+            console.log("Not found the user")
+            res.json({email: false})
             return
         }
 
@@ -77,61 +77,54 @@ app.post("/api/login", function(req, res) {
 
         if(!isEquals) {
             console.log("Password incorrect")
-            res.send(isEquals)
+            res.json({email: true, password: isEquals})
             return
         }
 
         console.log("Logged in successfull")
-        res.send(user)
+        res.json({user})
     })
 })
 
 
 // Processing the register 
-app.post("/api/register", function(req, res) {
-    const fullname = req.body.fullname
-    const email = req.body.email
-    const password = req.body.password
+app.route("/api/user")
+    .get(function(req, res) {
+        const user = require("./service/user/user")
 
-    User.find({email: email}, function(error, foundUser) {
-        if(error) {
-            console.log(error)
+        const {_id, email} = req.query
+
+        if(_id != null) {
+            user.readUserById(req, res)
             return
         }
 
-        if (foundUser.length != 0) {
-            console.log("Email taken")
-            res.send(false)
+        if(email != null) {
+            user.readUser(req, res)
             return
         }
 
-        const salt = bcrypt.genSaltSync(round)
-        const hash = bcrypt.hashSync(password, salt)
-
-        const user = new User({
-            fullname: fullname,
-            email: email,
-            password: hash
-        })
-
-        user.save(err => {
-            if(err) {
-                console.log(err)
-                res.send(false)
-                return
-            }
-
-            console.log("User created")
-            res.send(user)
-        })
-        
-        /*
-        user.save()
-            .then(() => res.send(user))
-            .catch(() => res.send(false))
-        */
+        console.log("No sent a query")
+        user.readUsers(req, res)
     })
-})
+    .post(function(req, res) {
+        const user = require("./service/user/user")
+        user.createUser(req, res)
+    })
+    .patch(function(req, res) {
+        const user = require("./service/user/user")
+        user.updateUser(req, res)
+    })
+    .delete(function(req, res) {
+        const user = require("./service/user/user")
+        user.createUser(req, res)
+    })
+
+app.route("/api/car")
+    .post(function(req, res) {
+        const car = require("./service/car/car")
+        car.addCar(req, res)
+    })
 
 
 // Running the server
