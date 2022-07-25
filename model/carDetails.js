@@ -1,8 +1,5 @@
 const mongoose = require("mongoose")
 
-const {Schema: car} = require("./car")
-const {Schema: image} = require("./image")
-
 const carDetails = new mongoose.Schema({
     licensePlate: {
         type: String,

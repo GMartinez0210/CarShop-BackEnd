@@ -53,7 +53,6 @@ passport.deserializeUser(function(_id, done) {
     })
 })
 
-// Processing the login
 app.post("/api/login", function(req, res) {
     const email = req.body.email
     const password = req.body.password
@@ -86,8 +85,6 @@ app.post("/api/login", function(req, res) {
     })
 })
 
-
-// Processing the register 
 app.route("/api/user")
     .get(function(req, res) {
         const user = require("./service/user/user")
@@ -121,11 +118,32 @@ app.route("/api/user")
     })
 
 app.route("/api/car")
-    .post(function(req, res) {
+    .post(async function(req, res) {
         const car = require("./service/car/car")
-        car.addCar(req, res)
+        await car.addCar(req, res)
     })
+    .patch(async function(req, res) {
+        const car = require("./service/car/car")
+        //await car.modifyCarInfo(req, res)
+        //await car.modifyCarDescription(req, res)
+        await car.modifyCarImage(req, res)
+    })
+    .delete(async function(req, res) {
+        const car = require("./service/car/car")
+        await car.removeCar(req, res)
+    })
+  
+app.get("/api/image/:name", async function(req, res) {
+    const path = require("path")
+    const name = req.params.name
+    const Image = require("./model/image")
+    const imagefound = await Image.findOne({name})
+    const {name: image} = imagefound
 
+    const imagePath = path.join(__dirname+"/image/car", image)
+    
+    res.sendFile(imagePath)
+})
 
 // Running the server
 app.listen(port, () => {

@@ -1,7 +1,5 @@
 const mongoose = require("mongoose")
 
-const {Schema: brand} = require("./brand")
-
 const car = new mongoose.Schema({
     brand: {
         type: mongoose.Schema.Types.ObjectId,

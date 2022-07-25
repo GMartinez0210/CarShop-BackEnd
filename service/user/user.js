@@ -51,7 +51,7 @@ exports.readUserById = function(req, res) {
 // Function to read by email one user
 exports.readUser = function(req, res) {
     const {email} = req.query
-    User.find({email: email}, function(error, user) {
+    User.find({email}, function(error, user) {
         if (error) {
             console.log(error)
             res.json({error: true})
@@ -75,7 +75,7 @@ exports.createUser = function(req, res) {
     const email = req.body.email
     const password = req.body.password
 
-    User.find({email: email}, function(error, foundUser) {
+    User.find({email}, function(error, foundUser) {
         if(error) {
             console.log(error)
             return
@@ -91,8 +91,8 @@ exports.createUser = function(req, res) {
         const hash = bcrypt.hashSync(password, salt)
 
         const user = new User({
-            fullname: fullname,
-            email: email,
+            fullname,
+            email,
             password: hash
         })
 
