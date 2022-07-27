@@ -31,17 +31,13 @@ const app = express()
 app.use(cors())  
 app.use(express.urlencoded({extended: true}))
 app.use(session({
-    secret: "Little secret",
+    secret: "Little Secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        secure: true
-    }
+    cookie: {secure: true}
 }))
 app.use(passport.initialize())
 app.use(passport.session())
-
-const port = process.env.PORT || 4000
 
 passport.use(User.createStrategy())
 passport.serializeUser(function(user, done) {
@@ -53,42 +49,22 @@ passport.deserializeUser(function(_id, done) {
     })
 })
 
-app.post("/api/login", function(req, res) {
-    const email = req.body.email
-    const password = req.body.password
+const login = require("./service/login/login")
 
-    User.find({email: email}, function(error, foundUser) {
-        if(error) {
-            console.log(error)
-            res.json({error: true})
-            return
-        }
-
-        if (foundUser.length == 0) {
-            console.log("Not found the user")
-            res.json({email: false})
-            return
-        }
-
-        const [user] = foundUser
-
-        const isEquals = bcrypt.compareSync(password, user.password)
-
-        if(!isEquals) {
-            console.log("Password incorrect")
-            res.json({email: true, password: isEquals})
-            return
-        }
-
-        console.log("Logged in successfull")
-        res.json({user})
-    })
+// Processing the log in/ sign in
+app.post("/api/logIn", async function(req, res) {
+    await login.singIn(req, res)
 })
 
+// Processing the log out/ sign out
+app.post("/api/logOut", async function(req, res) {
+    await login.singOut(req, res)
+})
+
+// Processing the user service
+const user = require("./service/user/user")
 app.route("/api/user")
     .get(function(req, res) {
-        const user = require("./service/user/user")
-
         const {_id, email} = req.query
 
         if(_id != null) {
@@ -105,34 +81,67 @@ app.route("/api/user")
         user.readUsers(req, res)
     })
     .post(function(req, res) {
-        const user = require("./service/user/user")
         user.createUser(req, res)
     })
     .patch(function(req, res) {
-        const user = require("./service/user/user")
         user.updateUser(req, res)
     })
     .delete(function(req, res) {
-        const user = require("./service/user/user")
         user.createUser(req, res)
     })
 
+// Processing the car service
+const car = require("./service/car/car")
 app.route("/api/car")
+    .get(async function(req, res) {
+        if(req.body._id) await car.getCar(req, res)
+        else await car.getCars(req, res)
+    })
     .post(async function(req, res) {
-        const car = require("./service/car/car")
         await car.addCar(req, res)
     })
     .patch(async function(req, res) {
-        const car = require("./service/car/car")
-        //await car.modifyCarInfo(req, res)
-        //await car.modifyCarDescription(req, res)
-        await car.modifyCarImage(req, res)
+        const {info, description, images} = req.query
+
+        if(info) {
+            await car.modifyCarInfo(req, res)
+            return
+        }
+        
+        if(description){
+            await car.modifyCarDescription(req, res)  
+            return
+        } 
+    
+        if(images) {
+            await car.modifyCarImage(req, res)
+            return
+        }
+
+        res.json({error: true})
     })
     .delete(async function(req, res) {
-        const car = require("./service/car/car")
         await car.removeCar(req, res)
     })
-  
+
+// Processing the post service
+const post = require("./service/post/post")
+app.route("/api/post")
+    .get(async (req, res) => {
+        if(req.body._id) await post.readPost(req, res)
+        else await post.readPosts(req, res)
+    })
+    .post(async (req, res) => {
+        await post.createPost(req, res)
+    })
+    .patch(async (req, res) => {
+        await post.updatePost(req, res)
+    })
+    .delete(async (req, res) => {
+        await post.deletePost(req, res)
+    })
+
+// Processing the image service based on id
 app.get("/api/image/:name", async function(req, res) {
     const path = require("path")
     const name = req.params.name
@@ -146,6 +155,7 @@ app.get("/api/image/:name", async function(req, res) {
 })
 
 // Running the server
+const port = process.env.PORT || 4000
 app.listen(port, () => {
     console.log(`Server running on port ${port}`)
 })

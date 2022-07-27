@@ -1,14 +1,12 @@
 const mongoose = require("mongoose")
 
-const {Schema: image} = require("./image")
-
 const profilePhoto = new mongoose.Schema({
     userId: {
-        type: String,
+        type: mongoose.Schema.Types.ObjectId,
         required: true
     },
     image: {
-        type: image,
+        type: mongoose.Schema.Types.ObjectId,
         default: {},
         required: true
     }

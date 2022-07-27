@@ -141,7 +141,7 @@ exports.updateUser = function(req, res) {
 exports.deleteUser = function(req, res) {
     const _id = req.body._id
 
-    User.deleteOne({_id: _id}, function(error) {
+    User.deleteOne({_id}, function(error) {
         if (error) {
             console.log(error)
             res.json({error: true})
@@ -149,6 +149,6 @@ exports.deleteUser = function(req, res) {
         }
 
         console.log(`Account with ID: ${_id} was deleted`)
-        res.json({success: true, _id: _id})
+        res.json({success: true, _id})
     })
 }

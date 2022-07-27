@@ -1,17 +1,16 @@
 const mongoose = require("mongoose")
 
-const {Schema: car} = require("./car")
-
 const date = new Date()
 
 const post = new mongoose.Schema({
-    userId: {
-        type: String,
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
         required: true
     },
     car: {
-        type: car,
-        default: {},
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "carDetails",
         required: true
     },
     time: {
@@ -23,3 +22,6 @@ const post = new mongoose.Schema({
         default: `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`
     }
 })
+
+module.exports = mongoose.model("post", post)
+exports.Schema = post

@@ -1,6 +1,5 @@
-const { Console } = require("console")
 const multer = require("multer")
-const path = require("path")
+//const path = require("path")
 
 const storage = multer.diskStorage({
     destination: "image/car",
@@ -13,13 +12,30 @@ const upload = multer({
     storage
 }).array("images", 5)
 
-// Function to get the cars
-exports.getCar = function(req, res) {
+// Function to get a car
+exports.getCar = async (req, res) => {
+    const CarDetails = require("../../model/carDetails")
 
+    const _id = req.body._id
+
+    const carFound = await CarDetails.findOne({_id})
+
+    console.log(`Car Details Item with ID: ${_id} was found`)
+    res.json({carDetails: carFound})
+}
+
+// Function to get all the cars
+exports.getCars = async (req, res) => {
+    const CarDetails = require("../../model/carDetails")
+
+    const carsFound = await CarDetails.find()
+
+    res.json({carDetails: carsFound})
 }
 
 // Function to add a car
-exports.addCar = async function(req, res) {
+exports.addCar = async (req, res) => {
+    const User = require("../../model/user")
     const Image = require("../../model/image")
     const Brand = require("../../model/brand")
     const Car = require("../../model/car")
@@ -34,15 +50,20 @@ exports.addCar = async function(req, res) {
         }
 
         try {
-            const licensePlate = req.body.licensePlate
-            const brand = req.body.brand
-            const model = req.body.model
+            const { licensePlate, brand, model,
+                price, about, engine,
+                gears, seats, user } = req.body
             const images = req.files
-            const price = req.body.price
-            const about = req.body.about
-            const engine = req.body.engine
-            const gears = req.body.gears
-            const seats = req.body.seats
+
+            const userFound = await User.findById(user)
+                .catch(error => {
+                    if(error) {
+                        console.log(error)
+                        res.json({error: true})
+                    }
+                })
+            
+            if(userFound == null) return
             
             const arrayImages = images.map(imageUploaded => {
                 const image = new Image({
@@ -95,6 +116,7 @@ exports.addCar = async function(req, res) {
             }
             
             const carDetails = new CarDetails({
+                user,
                 licensePlate,
                 description: new Car(carSchema),
                 images: arrayImages,
@@ -120,7 +142,7 @@ exports.addCar = async function(req, res) {
 }
 
 // Function to modify the car info
-exports.modifyCarInfo = async function(req, res) {
+exports.modifyCarInfo = async (req, res) => {
     const CarDetails = require("../../model/carDetails")
     
     const _id = req.body._id
@@ -156,7 +178,7 @@ exports.modifyCarInfo = async function(req, res) {
 }
 
 // Function to modify the car description (model)
-exports.modifyCarDescription = async function(req, res) {
+exports.modifyCarDescription = async (req, res) => {
     const Brand = require("../../model/brand")
     const Car = require("../../model/car")
     const CarDetails = require("../../model/carDetails")
@@ -226,7 +248,7 @@ exports.modifyCarDescription = async function(req, res) {
 }
 
 // Function to modify the car image
-exports.modifyCarImage = async function(req, res) {
+exports.modifyCarImage = async (req, res) => {
     upload(req, res, async function(error) {
         if(error) {
             console.log("Error in upload function")
@@ -298,7 +320,7 @@ exports.modifyCarImage = async function(req, res) {
 }
 
 // Function to remove a car
-exports.removeCar = async function(req, res) {
+exports.removeCar = async (req, res) => {
     const CarDetails = require("../../model/carDetails")
 
     const _id = req.body._id

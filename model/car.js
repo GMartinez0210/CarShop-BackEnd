@@ -3,7 +3,6 @@ const mongoose = require("mongoose")
 const car = new mongoose.Schema({
     brand: {
         type: mongoose.Schema.Types.ObjectId,
-        default: {},
         ref: 'brand',
         required: true
     },
