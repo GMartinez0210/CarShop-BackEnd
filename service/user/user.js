@@ -1,154 +1,256 @@
+// * Requiring the libreries
 require("dotenv").config()
-//const mongoose = require("mongoose")
-//const {v4: uuidv4} = require("uuid")
 const bcrypt = require("bcrypt")
+const fs = require("fs")
 
 const round = +process.env.ROUND_HASH
 
+// * Instancing the models
 const User = require("../../model/user")
+const Photo = require("../../model/photo")
 
-// Function to read all the users
-exports.readUsers = function(req, res) {
-    User.find(function(error, users) {
-        if (error) {
-            console.log(error)
-            res.json({error: true})
-            return
-        }
+// * Instancing multer to upload the profile image
+const multer = require("multer")
 
-        if(users.length == 0) {
-            console.log("No users")
-            res.json({users: []})
-            return
-        }
+const storage = multer.diskStorage({
+    destination: "image/profile",
+    filename: function(req, file, cb) {
+        cb(null, `${Date.now()}-${Math.round(Math.random() * 1E9)}-${file.originalname}`)
+    }
+})
 
-        console.log(`${users.length} users found`)
-        res.json({users})
-    })
-}
+const upload = multer({
+    storage
+}).single("photo")
 
-// Function to read by id one user
-exports.readUserById = function(req, res) {
-    const {_id} = req.query
-    User.findById(_id, function(error, user) {
-        if (error) {
-            console.log(error)
-            res.json({error: true})
-            return
-        }
-
-        if(user == null) {
-            console.log("No user")
-            res.json({user})
-            return
-        }
-
-        console.log("User found sucessful")
-        res.json({user})
-    })
-}
-
-// Function to read by email one user
-exports.readUser = function(req, res) {
-    const {email} = req.query
-    User.find({email}, function(error, user) {
-        if (error) {
-            console.log(error)
-            res.json({error: true})
-            return
-        }
-
-        if(user.length == 0) {
-            console.log("No user")
-            res.json({user: null})
-            return
-        }
-
-        console.log("User found sucessful")
-        res.json({user})
-    })
-}
-
-// Function to create an account
-exports.createUser = function(req, res) {
-    const fullname = req.body.fullname
-    const email = req.body.email
-    const password = req.body.password
-
-    User.find({email}, function(error, foundUser) {
-        if(error) {
-            console.log(error)
-            return
-        }
-
-        if (foundUser.length != 0) {
-            console.log("Email taken")
-            res.json({taken: true})
-            return
-        }
-
-        const salt = bcrypt.genSaltSync(round)
-        const hash = bcrypt.hashSync(password, salt)
-
-        const user = new User({
-            fullname,
-            email,
-            password: hash
-        })
-
-        user.save(err => {
-            if(err) {
-                console.log(err)
-                res.json({error: true})
+// * Function to read all the users
+exports.readUsers = async(req, res) => {
+    await User.find()
+        .then(users => {
+            if(users.length == 0) {
+                console.log("No users")
+                res.json({users: []})
                 return
             }
 
-            console.log("User created")
-            res.json(user)
+            console.log(`${users.length} users found`)
+            res.json({users})
         })
-    })
+        .catch(error => {
+            console.log(`Error while finding all the users`)
+            console.log(error)
+            res.json({error: true})
+        })
 }
 
-// Function to update an account
-exports.updateUser = function(req, res) {
-    const _id = req.body._id
-    const fullname = req.body.fullname
-    const email = req.body.email
-    const password = req.body.password
+// * Function to read by id one user
+exports.readUserById = async(req, res) => {
+    const {_id} = req.query
+
+    await User.findById(_id)
+        .then(user => {
+            if(user == null) {
+                console.log("No user")
+                res.json({user})
+                return
+            }
+    
+            console.log("User found sucessful")
+            res.json({user})
+        })
+        .catch(error => {
+            console.log(`Error while finding the user: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
+}
+
+// * Function to read by email one user
+exports.readUser = async(req, res) => {
+    const {email} = req.query
+
+    await User.find({email})
+        .then(user => {
+            if(user.length == 0) {
+                console.log("No user")
+                res.json({user: null})
+                return
+            }
+    
+            console.log("User found sucessful")
+            res.json({user})
+        })
+        .catch(error => {
+            console.log(`Error while finding the user with email: ${email}`)
+            console.log(error)
+            res.json({error: true})
+        })
+}
+
+// * Function to create an account
+exports.createUser = async(req, res) => {
+    const {fullname, email, password} = req.body
+
+    await User.findOne({email})
+        .then(async(userFound) => {
+            if(userFound == null) {
+                console.log("Email taken")
+                res.json({taken: true})
+                return
+            }
+
+            const salt = bcrypt.genSaltSync(round)
+            const hash = bcrypt.hashSync(password, salt)
+    
+            const user = new User({
+                fullname,
+                email,
+                password: hash
+            })
+
+            await user.save()
+                .then(userCreated => {
+                    console.log("User created successful")
+                    res.json({user: userCreated})
+                })
+                .catch(error => {
+                    console.log(`Error while creating the user: ${user}`)
+                    console.log(error)
+                    res.json({error: true})
+                })
+        })
+        .catch(error => {
+            console.log(`Error while finding the user with email: ${email}`)
+            console.log(error)
+            res.json({error: true})
+        })
+}
+
+// * Function to update an account
+exports.updateUser = async(req, res) => {
+    const {_id, fullname, email, password} = req.body
 
     const salt = bcrypt.genSaltSync(round)
     const hash = bcrypt.hashSync(password, salt)
 
     const user = {
-        fullname: fullname,
-        email: email,
+        fullname,
+        email,
         password: hash
     }
 
-    User.updateOne({_id: _id}, {$set: user}, function(error) {
-        if (error) {
+    await User.updateOne({_id}, {$set: user})
+        .then(() => {
+            console.log(`Account ${_id} was updated successfully`)
+            res.json({_id, ...user})
+        })
+        .catch(error => {
+            console.log(`Error while updating the user ${_id}`)
             console.log(error)
             res.json({error: true})
-            return
-        }
-
-        console.log(`Account ${_id} was updated successfully`)
-        res.json({_id: _id, ...user})
-    })
+        })
 }
 
-// Function to delete an account
-exports.deleteUser = function(req, res) {
-    const _id = req.body._id
+// * Function to delete an account
+exports.deleteUser = async(req, res) => {
+    const {_id} = req.body
 
-    User.deleteOne({_id}, function(error) {
-        if (error) {
+    await User.deleteOne({_id})
+        .then(() => {
+            console.log(`Account with ID: ${_id} was deleted`)
+            res.json({success: true, _id})
+        })
+        .catch(error => {
+            console.log(`Error while deleting the user ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
+}
+
+// Function to update the user's photo
+exports.updatePhoto = async (req, res) => {
+    upload(req, res, async function(error) {
+        if(error) {
+            console.log("Error in upload function")
             console.log(error)
             res.json({error: true})
             return
         }
 
-        console.log(`Account with ID: ${_id} was deleted`)
-        res.json({success: true, _id})
+        const {_id} = req.body
+        const photo = req.file
+
+        const user = await User.findById(_id)
+            .then(user => {
+                if(user == null) {
+                    console.log(`Not found user: ${_id}`)
+                    console.log(error)
+                }
+
+                console.log(`User ${_id} was found successful`)
+            })
+            .catch(error => {
+                console.log(`Error while finding the user: ${_id}`)
+                console.log(error)
+                res.json({error: true})
+            })
+
+        if(user == null) return
+
+        if(user.photo) {
+            await Photo.findById(user.photo)
+                .then(async (photo) => {
+                    fs.unlinkSync("./image/profile/"+photo.name)
+                    await Photo.deleteOne({_id: user.photo})
+                        .then(() => console.log(`Photo ${user.photo} deleted successful`))
+                        .catch(error => {
+                            console.log(`Error while deleting photo: ${user.photo}`)
+                            console.log(error)
+                        })
+                })
+                .catch(error => {
+                    console.log(`Error while finding photo: ${user.photo}`)
+                    console.log(error)
+                })
+        }
+
+        const image = new Photo({
+            name: photo.filename,
+            photo: {
+                data: photo.filename,
+                contentType: photo.mimetype
+            }
+        })
+
+        const imageSaved = await image.save()
+            .then(image => console.log(`Image ${image._id} saved successful`))
+            .catch(error => {
+                console.log(`Error while saving the image ${image}`)
+                console.log(error)
+                res.json({error: true})
+            })
+        
+        if(!imageSaved) return
+
+        await User.updateOne({_id}, {$set: {photo: imageSaved}})
+            .then(async() => {
+                await User.findById(_id)
+                    .then(user => {
+                        if(user == null) return
+
+                        console.log(`User ${user._id} was updated`)
+                        res.json({user})
+                    })
+                    .catch(error => {    
+                        console.log(`Error while finding the user: ${user._id}`)
+                        console.log(error)
+                        res.json({error: true})
+                    })
+            })
+            .catch(error => {
+                console.log(`Error while updating the user: ${user._id}`)
+                console.log(error)
+                res.json({error: true})
+            })
     })
 }

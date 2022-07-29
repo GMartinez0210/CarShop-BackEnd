@@ -14,6 +14,9 @@ const user = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    photo: {
+        type: mongoose.Schema.Types.ObjectId,
     }
 })
 

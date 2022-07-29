@@ -1,3 +1,4 @@
+// Instancing the models needed
 const User = require("../../model/user")
 const CarDetails = require("../../model/carDetails")
 const Post = require("../../model/post") 
@@ -14,18 +15,18 @@ exports.createPost = async (req, res) => {
     })
 
     await post.save()
-        .then(postcreated => {
-            console.log("Post created successful")
-            res.json({post: postcreated})
+        .then(postCreated => {
+            console.log(`Post ${postCreated._id} created successful`)
+            res.json({post: postCreated})
         })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log(`Error while saving the post: ${post}`)
+            console.log(error)
+            res.json({error: true})
         })
 }
 
+// Function to read a post
 exports.readPost = async (req, res) => {
     const {_id} = req.body
 
@@ -40,7 +41,21 @@ exports.readPost = async (req, res) => {
             console.log("Post found")
 
             const user = await User.findById(post.user)
+                .then(user => {
+                    console.log(`User ${user._id} was found successful`)
+                })
+                .catch(error => {
+                    console.log(`Error while finding the user: ${post.user}`)
+                    console.log(error)
+                })
             const car = await CarDetails.findById(post.car)
+                .then(car => {
+                    console.log(`Car ${car._id} was found successful`)
+                })
+                .catch(error => {
+                    console.log(`Error while finding the user: ${post.car}`)
+                    console.log(error)
+                })
 
             const userSchema = {
                 _id: user._id,
@@ -51,37 +66,37 @@ exports.readPost = async (req, res) => {
             res.json({post, user: userSchema, car})
         })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log(`Error while finding the post: ${_id}`)
+            console.log(error)
+            res.json({error: true})
         })
 }
 
+// Function to read all the posts
 exports.readPosts = async (req, res) => {
     await Post.find()
         .then(post => {
-            console.log("Post found")
-
+            console.log(`Posts was found successful`)
             res.json({post})
         })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log("Error while finding the posts" )
+            console.log(error)
+            res.json({error: true})
         })
 }
 
+// Function to update a post
 exports.updatePost = async (req, res) => {
     const {_id, car} = req.body
 
     const carFound = await CarDetails.findById(car)
+        .then(car => {
+            console.log(`Car details ${car._id} was found sucessful`)
+        })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log(error)
+            res.json({error: true})
         })
     
     if(carFound == null) return
@@ -97,11 +112,12 @@ exports.updatePost = async (req, res) => {
             console.log(`Post updated: ${_id}`)
             
             const post = await Post.findById(_id)
+                .then(post => {
+                    console.log(`Post ${post._id} was found successful`)
+                })
                 .catch(error => {
-                    if (error) {
-                        console.log(error)
-                        res.json({error: true})
-                    }
+                    console.log(error)
+                    res.json({error: true})
                 })
 
             if(post == null) return
@@ -109,13 +125,12 @@ exports.updatePost = async (req, res) => {
             res.json(post)
         })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log(error)
+            res.json({error: true})
         })
 }
 
+// Function to delete a post
 exports.deletePost = async (req, res) => {
     const {_id} = req.body
 
@@ -125,19 +140,35 @@ exports.deletePost = async (req, res) => {
             res.json({success: true, _id})
         })
         .catch(error => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-            }
+            console.log(`Error while deleting the post: ${_id}`)
+            console.log(error)
+            res.json({error: true})
         })
 }
 
+exports.deletePosts = async (req, res) => {
+    const {_id} = req.body
+
+    await Post.deleteMany({user: _id})
+        .then(() => {
+            console.log(`Posts made by the user: ${_id} were deleted`)
+            res.json({success: true, user: _id})
+        })
+        .catch(error => {
+            console.log(`Error while deleting the posts by user: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
+}
+
+// Function to get the current time
 function getTime() {
     const date = new Date()
     const result = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
     return result
 }
 
+// Function to get the current date
 function getDate() {
     const date = new Date()
     const result = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`

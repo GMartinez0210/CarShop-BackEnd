@@ -1,5 +1,11 @@
+const fs = require("fs")
 const multer = require("multer")
-//const path = require("path")
+
+const User = require("../../model/user")
+const Image = require("../../model/image")
+const Brand = require("../../model/brand")
+const Car = require("../../model/car")
+const CarDetails = require("../../model/carDetails")
 
 const storage = multer.diskStorage({
     destination: "image/car",
@@ -13,34 +19,37 @@ const upload = multer({
 }).array("images", 5)
 
 // Function to get a car
-exports.getCar = async (req, res) => {
-    const CarDetails = require("../../model/carDetails")
+exports.getCar = async(req, res) => {
+    const {_id} = req.body
 
-    const _id = req.body._id
-
-    const carFound = await CarDetails.findOne({_id})
-
-    console.log(`Car Details Item with ID: ${_id} was found`)
-    res.json({carDetails: carFound})
+    await CarDetails.findOne({_id})
+        .then(carDetails => {
+            console.log(`Car Details Item with ID: ${_id} was found`)
+            res.json({carDetails})
+        })
+        .catch(error => {
+            console.log(`Error while finding the car details: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
 }
 
 // Function to get all the cars
-exports.getCars = async (req, res) => {
-    const CarDetails = require("../../model/carDetails")
-
-    const carsFound = await CarDetails.find()
-
-    res.json({carDetails: carsFound})
+exports.getCars = async(req, res) => {
+    await CarDetails.find()
+        .then(carDetails => {
+            console.log(`Car Details were found`)
+            res.json({carDetails})
+        })
+        .catch(error => {
+            console.log("Error while finding all the cars details")
+            console.log(error)
+            res.json({error: true})
+        })
 }
 
 // Function to add a car
-exports.addCar = async (req, res) => {
-    const User = require("../../model/user")
-    const Image = require("../../model/image")
-    const Brand = require("../../model/brand")
-    const Car = require("../../model/car")
-    const CarDetails = require("../../model/carDetails")
-    
+exports.addCar = async(req, res) => {    
     upload(req, res, async function(error){
         if(error) {
             console.log("Error in upload function")
@@ -49,106 +58,117 @@ exports.addCar = async (req, res) => {
             return
         }
 
-        try {
-            const { licensePlate, brand, model,
-                price, about, engine,
-                gears, seats, user } = req.body
-            const images = req.files
+        const { licensePlate, brand, model,
+            price, about, engine,
+            gears, seats, user } = req.body
 
-            const userFound = await User.findById(user)
-                .catch(error => {
-                    if(error) {
-                        console.log(error)
-                        res.json({error: true})
-                    }
-                })
-            
-            if(userFound == null) return
-            
-            const arrayImages = images.map(imageUploaded => {
-                const image = new Image({
-                    name: imageUploaded.filename,
-                    image: {
-                        data: imageUploaded.filename,
-                        contentType: imageUploaded.mimetype
-                    }
-                })
-    
-                image.save(error => {
-                    if (error) {
-                        console.log(error)
-                        return
-                    }
-    
-                    console.log("Image saved successful")
-                })
-    
-                return image
-            })
-            
+        const images = req.files
 
-            const brandSchema = {
-                name: brand
-            }
+        if(!images) {
+            console.log("No images")
+            res.json({error: true})
+            return
+        }
 
-            const {created: createdBrand, error: errorBrand} = await findOrCreate(Brand, brandSchema)
 
-            if(!createdBrand) {
-                console.log(errorBrand)
-                res.json({error: true})
-                return
-            }
-            
-            const carSchema = {
-                brand: new Brand(brandSchema),
-                model,
-                engine,
-                gears,
-                seats
-            }
-            
-            const {created: createdCar, error: errorCar} = await findOrCreate(Car, carSchema)
-            
-            if(!createdCar) {
-                console.log(errorCar)
-                res.json({error: true})
-                return
-            }
-            
-            const carDetails = new CarDetails({
-                user,
-                licensePlate,
-                description: new Car(carSchema),
-                images: arrayImages,
-                price, 
-                about
-            })
-    
-            carDetails.save(error => {
-                if (error) {
-                    console.log(error)
+        const userFound = await User.findById(user)
+            .then(userFound => {
+                if(userFound == null) {
+                    console.log(`Not user ${user} found`)
+                    res.json({carDetails: null})
                     return
                 }
-    
-                console.log("Car details saved succesful")
+
+                console.log(`User ${user} was found successfull`)
+                return userFound
             })
-            res.json({carDetails})
-        }
-        catch (err) {
-            console.log(err)
+            .catch(error => {
+                console.log(error)
+                res.json({error: true})
+            })
+        
+        if(userFound == null) return
+        
+        console.log("Before Mapeo")
+
+        const arrayImages = images.map(imageUploaded => {
+            const image = new Image({
+                name: imageUploaded.filename,
+                image: {
+                    data: imageUploaded.filename,
+                    contentType: imageUploaded.mimetype
+                }
+            })
+
+            image.save(error => {
+                if(error) {
+                    console.log(error)
+                }
+
+                console.log("Image saved successful")
+            })
+
+            return image
+        })
+        
+
+        if(arrayImages.some(item => item == null)) {
             res.json({error: true})
+            return
         }
+
+        const brandSchema = {
+            name: brand
+        }
+        const {item: itemBrand, error: errorBrand} = await findOrCreate(Brand, brandSchema)
+        
+        if(errorBrand) {
+            console.log(errorBrand)
+            res.json({error: true})
+            return
+        }
+        
+        const carSchema = {
+            brand: itemBrand._id,
+            model,
+            engine,
+            gears,
+            seats
+        }
+        
+        const {item: itemCar, error: errorCar} = await findOrCreate(Car, carSchema)
+        
+        if(errorCar) {
+            console.log(errorCar)
+            res.json({error: true})
+            return
+        }
+        
+        const carDetails = new CarDetails({
+            user,
+            licensePlate,
+            description: itemCar._id,
+            images: arrayImages,
+            price, 
+            about
+        })
+
+        await carDetails.save()
+            .then(carDetails => {
+                console.log("Car was saved successful")
+                res.json({carDetails})
+            })
+            .catch(error => {
+                console.log(`Error while saving the carDetails: ${carDetails}`)
+                console.log(error)
+                res.json({error: true})
+            })
     })
 }
 
 // Function to modify the car info
-exports.modifyCarInfo = async (req, res) => {
-    const CarDetails = require("../../model/carDetails")
-    
-    const _id = req.body._id
-    const licensePlate = req.body.licensePlate
-    const price = req.body.price 
-    const about = req.body.about
+exports.modifyCarInfo = async(req, res) => {  
+    const {_id, licensePlate, price, about} = req.body
 
     const modifying = {
         licensePlate,
@@ -156,53 +176,43 @@ exports.modifyCarInfo = async (req, res) => {
         about
     }
 
-    const carUpdated = await CarDetails.updateOne({_id}, {$set: modifying})
-        .exec(async (error) => {
-            if(error) {
-                console.log(error)
-                res.json({error: true})
-                return
-            }
-
-            const carFound = await CarDetails.findById(_id)
-                .exec((err, car) => {
-                    if(err) {
-                        console.log(err)
-                        res.json({error: true})
-                        return
-                    }
-
+    await CarDetails.updateOne({_id}, {$set: modifying})
+        .then(async() => {
+            await CarDetails.findById(_id)
+                .then(car => {
+                    console.log(`Car details ${car._id} was found successful`)
                     res.json({carDetails: car})
                 })
+                .catch(error => {
+                    console.log(`Error while finding the car details: ${_id}`)
+                    console.log(error)
+                    res.json({error: true})
+                })
+        })
+        .catch(error => {
+            console.log(`Error while updating the car details: ${_id}`)
+            console.log(error)
+            res.json({error: true})
         })
 }
 
 // Function to modify the car description (model)
-exports.modifyCarDescription = async (req, res) => {
-    const Brand = require("../../model/brand")
-    const Car = require("../../model/car")
-    const CarDetails = require("../../model/carDetails")
-
-    const _id = req.body._id
-    const brand = req.body.brand
-    const model = req.body.model
-    const engine = req.body.engine
-    const gears = req.body.gears
-    const seats = req.body.seats
+exports.modifyCarDescription = async(req, res) => {
+    const {_id, brand, model, engine, gears, seats} = req.body
 
     const brandSchema = {
         name: brand
     }
 
-    const {created: createdBrand, error: errorBrand} = await findOrCreate(Brand, brandSchema)
-
-    if(!createdBrand) {
+    const {item: itemBrand, error: errorBrand} = await findOrCreate(Brand, brandSchema)
+    
+    if(errorBrand) {
         console.log("Error Brand: ")
         console.log(errorBrand)
         res.json({error: true})
         return
     }
-
+    
     const carSchema = {
         model,
         engine,
@@ -210,45 +220,41 @@ exports.modifyCarDescription = async (req, res) => {
         seats
     }
     
-    const auxBrand = {brand: new Brand(brandSchema)}
-
-    const {created: createdCar, error: errorCar} = await findOrCreate(Car, carSchema, auxBrand)
-
-    if(!createdCar) {
+    const auxBrand = {brand: itemBrand._id}
+    
+    const {item: itemCar, error: errorCar} = await findOrCreate(Car, carSchema, auxBrand)
+    
+    if(errorCar) {
         console.log("Error car: ")
         console.log(errorCar)
         res.json({error: true})
         return
     }
 
-    const modifying = {brand: new Brand(brandSchema), ...carSchema}
+    const modifying = {description: itemCar._id}
 
-    const carUpdated = await CarDetails.updateOne({_id}, {$set: modifying})
-        .exec(async (error) => {
-            if(error) {
-                console.log("Error while updating car details: ")
-                console.log(error)
-                res.json({error: true})
-                return
-            }
-
-            const carFound = await CarDetails.findById(_id)
-                .exec((err, car) => {
-                    if(err) {
-                        console.log("Error while finding car details: ")
-                        console.log(err)
-                        res.json({error: true})
-                        return
-                    }
-
-                    res.json({carDetails: car})
+    await CarDetails.updateOne({_id}, {$set: modifying})
+        .then(async() => {
+            await CarDetails.findById(_id)
+                .then(carDetails => {
+                    console.log(`Car details ${carDetails._id} was found`)
+                    res.json({carDetails})
+                })
+                .catch(error => {
+                    console.log(`Error while finding car details: ${_id}`)
+                    console.log(error)
+                    res.json({error: true})
                 })
         })
-
+        .catch(error => {
+            console.log(`Error while updating car details: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })  
 }
 
 // Function to modify the car image
-exports.modifyCarImage = async (req, res) => {
+exports.modifyCarImage = async(req, res) => {
     upload(req, res, async function(error) {
         if(error) {
             console.log("Error in upload function")
@@ -257,92 +263,122 @@ exports.modifyCarImage = async (req, res) => {
             return
         }
 
-        const fs = require("fs")
-        const Image = require("../../model/image")
-        const CarDetails = require("../../model/carDetails")
+        const {_id} = req.body
+        const images = req.files
 
-        try {
-            const _id = req.body._id
-            const images = req.files
+        if(!images) {
+            console.log("No images")
+            res.json({error: true})
+            return
+        }
 
-            const carFound = await CarDetails.findById(_id)
-
-            const {images: arrayCarImages} = carFound
-
-            try {
-                arrayCarImages.forEach(async(_id) => {
-                    const image = await Image.findOne({_id})
-                    fs.unlinkSync("./image/car/"+image.name)
-                    await Image.deleteOne({_id})
-                })
-            } 
-            catch (error2) {
-                console.log(error2)
+        const carFound = await CarDetails.findById(_id)
+            .then((car) => {
+                if(car == null) {
+                    console.log("Not car found")
+                    res.json({carDetails: null})
+                    return null
+                }
+                
+                console.log(`Car details ${car._id} was found success`)
+                return car
+            })
+            .catch(error => {
+                console.log(error)
                 res.json({error: true})
-                return
-            }
-
-            const arrayImages = images.map(imageUploaded => {
-                const image = new Image({
-                    name: imageUploaded.filename,
-                    image: {
-                        data: imageUploaded.filename,
-                        contentType: imageUploaded.mimetype
-                    }
-                })
-    
-                image.save(error => {
-                    if (error) {
-                        console.log(error)
-                        return
-                    }
-    
-                    console.log("Image saved successful")
-                })
-    
-                return image
             })
 
-            const modifying = {images: arrayImages}
+        if(carFound == null) return
 
-            await CarDetails.updateOne({_id}, {$set: modifying})
+        const {images: arrayCarImages} = carFound
+        
+        arrayCarImages.forEach(async _id => {
+            await Image.findOne({_id})
+                .then(async image => {
+                    fs.unlinkSync("./image/car/"+image.name)
+                    await Image.deleteOne({_id})
+                        .then(() => {
+                            console.log(`Image ${_id} was deleted successful`)
+                        })
+                        .catch(error => {
+                            console.log(`Error while deleting the image ${_id}`)
+                            console.log(error)
+                        })
+                })
+                .catch(error => {
+                    console.log(`Error while finding the image ${_id}`)
+                    console.log(error)
+                })
+        }) 
 
-            const updatedCarFound = await CarDetails.findById(_id)
+        const arrayImages = images.map(imageUploaded => {
+            const image = new Image({
+                name: imageUploaded.filename,
+                image: {
+                    data: imageUploaded.filename,
+                    contentType: imageUploaded.mimetype
+                }
+            })
 
-            res.json({carDetails: updatedCarFound})
-        } 
-        catch (error) {
-            console.log("Catch error: ")
-            console.log(error)
-            res.json({error: true})
-        }
+            image.save(error => {
+                if(error) {
+                    console.log(`Error while saving the image: ${image}`)
+                    console.log(error)
+                }
+
+                console.log("Image saved successful")
+            })
+
+            return image
+        })
+
+        const modifying = {images: arrayImages}
+
+        await CarDetails.updateOne({_id}, {$set: modifying})
+            .then(async() => {
+                await CarDetails.findById(_id)
+                    .then(car => {
+                        res.json({carDetails: car})
+                    })
+                    .catch(error => {
+                        console.log(`Error while finding the car details: ${_id}`)
+                        console.log(error)
+                        res.json({error: true})
+                    })
+            })
+            .catch(error => {
+                console.log(`Error while updating the car details: ${_id}`)
+                console.log(error)
+                res.json({error: true})
+            })
+
     })
 }
 
 // Function to remove a car
-exports.removeCar = async (req, res) => {
+exports.removeCar = async(req, res) => {
     const CarDetails = require("../../model/carDetails")
 
     const _id = req.body._id
 
     await CarDetails.deleteOne({_id})
-
-    console.log(`Car Details Item with ID: ${_id} was deleted`)
-    res.json({success: true, _id: _id})
+        .then(() => {
+            console.log(`Car Details Item with ID: ${_id} was deleted`)
+            res.json({success: true, _id: _id})
+        })
+        .catch(error => {
+            console.log(`Error while deleting the car details: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
 }
 
 // Function find or create 
 async function findOrCreate (model, schema, aux) {
     try {
-        const modelFound = await model.findOne(schema)
-            .exec(async (error, itemFound) => {
-                if (error) {
-                    console.log("Error while finding item: ")
-                    console.log(error)
-                    return false
-                }
-        
-                if (itemFound != null) {
+        const item = await model.findOne(schema)
+            .then(async itemFound => {
+                if(itemFound != null) {
                     console.log("Item found sucessful")
                     return itemFound
                 }
@@ -353,18 +389,23 @@ async function findOrCreate (model, schema, aux) {
                 || aux == null) newItem = new model(schema)
                 else newItem = new model({...schema, ...aux})
 
-                const item = await newItem.save(err => {
-                    if (err) {
+                const itemSaved = await newItem.save()
+                    .then((item) => {
+                        console.log("Item created successful")
+                        return item
+                    })
+                    .catch(error => {
                         console.log("Error while saving item: ")
-                        console.log(err)
-                        return false
-                    }
-        
-                    console.log("Item created successful")
-                    return newItem
-                })
+                        console.log(error)
+                    })
+
+                return itemSaved
             })
-        return {created: true}
+            .catch(error => {
+                console.log("Error while finding item: ")
+                console.log(error)
+            })
+        return {item}
     } 
     catch (error) {
         console.log("Inside the find or create: ")

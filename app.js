@@ -64,7 +64,7 @@ app.post("/api/logOut", async function(req, res) {
 // Processing the user service
 const user = require("./service/user/user")
 app.route("/api/user")
-    .get(function(req, res) {
+    .get(async(req, res) => {
         const {_id, email} = req.query
 
         if(_id != null) {
@@ -78,13 +78,14 @@ app.route("/api/user")
         }
 
         console.log("No sent a query")
-        user.readUsers(req, res)
+        await user.readUsers(req, res)
     })
     .post(function(req, res) {
         user.createUser(req, res)
     })
-    .patch(function(req, res) {
-        user.updateUser(req, res)
+    .patch(async (req, res) => {
+        //user.updateUser(req, res)
+        await user.updatePhoto(req, res)
     })
     .delete(function(req, res) {
         user.createUser(req, res)
@@ -118,6 +119,7 @@ app.route("/api/car")
             return
         }
 
+        console.log("No params given")
         res.json({error: true})
     })
     .delete(async function(req, res) {

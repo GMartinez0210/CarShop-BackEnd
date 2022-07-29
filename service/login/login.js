@@ -21,6 +21,7 @@ exports.singIn = async (req, res) => {
             req.session.regenerate(error => {
                 if(error) {
                     console.log(error)
+                    res.json({error: true})
                     return
                 }
 
@@ -31,6 +32,7 @@ exports.singIn = async (req, res) => {
                 req.session.save(err => {
                     if(err) {
                         console.log(err)
+                        res.json({error: true})
                         return
                     }
 
@@ -52,6 +54,7 @@ exports.singOut = async (req, res) => {
     req.session.save(error => {
         if (error) {
             console.log(error)
+            res.json({error: true})
             return
         }
 
@@ -64,6 +67,7 @@ exports.singOut = async (req, res) => {
         req.session.regenerate(err => {
             if (err) {
                 console.log(err)
+                res.json({error: true})
                 return
             }
 
