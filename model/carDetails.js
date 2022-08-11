@@ -1,5 +1,7 @@
 const mongoose = require("mongoose")
 
+const {Schema: car} = require("./car")
+
 const carDetails = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -10,14 +12,9 @@ const carDetails = new mongoose.Schema({
         type: String,
         required: true
     },
-    description: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "car",
-        required: true
-    },
+    description: car,
     images: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: "image",
+        type: mongoose.Schema.Types.Array,
         required: true
     },
     price: {
@@ -31,4 +28,4 @@ const carDetails = new mongoose.Schema({
 })
 
 module.exports = mongoose.model("carDetail", carDetails)
-exports.Schema = carDetails
+module.exports.Schema = carDetails

@@ -8,7 +8,7 @@ exports.singIn = async (req, res) => {
         .then(user => {
             if(user == null) {
                 console.log("Not found the user")
-                res.json({email: false})
+                res.json({user: null})
                 return
             }
 
@@ -41,7 +41,7 @@ exports.singIn = async (req, res) => {
             })
 
             console.log("Signing in successful")
-            res.json({user})
+            res.json({user, session: req.session.id})
         })
         .catch(error => {
             console.log(error)

@@ -2,8 +2,7 @@ const mongoose = require("mongoose")
 
 const car = new mongoose.Schema({
     brand: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'brand',
+        type: String,
         required: true
     },
     model: {
@@ -25,5 +24,4 @@ const car = new mongoose.Schema({
     }
 })
 
-module.exports = mongoose.model("car", car)
-exports.Schema = car
+module.exports.Schema = car

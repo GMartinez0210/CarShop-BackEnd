@@ -93,7 +93,7 @@ exports.createUser = async(req, res) => {
 
     await User.findOne({email})
         .then(async(userFound) => {
-            if(userFound == null) {
+            if(userFound != null) {
                 console.log("Email taken")
                 res.json({taken: true})
                 return
