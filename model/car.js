@@ -1,6 +1,19 @@
 const mongoose = require("mongoose")
 
 const car = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+        required: true
+    },
+    licensePlate: {
+        type: String,
+        required: true
+    },
+    images: {
+        type: mongoose.Schema.Types.Array,
+        required: true
+    },
     brand: {
         type: String,
         required: true
@@ -21,7 +34,16 @@ const car = new mongoose.Schema({
         type: Number,
         default: 2,
         required: true
+    },
+    price: {
+        type: Number,
+        required: true
+    },
+    about: {
+        type: String,
+        required: true
     }
 })
 
+module.exports = mongoose.model("car", car)
 module.exports.Schema = car

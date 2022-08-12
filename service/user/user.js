@@ -151,22 +151,6 @@ exports.updateUser = async(req, res) => {
         })
 }
 
-// * Function to delete an account
-exports.deleteUser = async(req, res) => {
-    const {_id} = req.body
-
-    await User.deleteOne({_id})
-        .then(() => {
-            console.log(`Account with ID: ${_id} was deleted`)
-            res.json({success: true, _id})
-        })
-        .catch(error => {
-            console.log(`Error while deleting the user ${_id}`)
-            console.log(error)
-            res.json({error: true})
-        })
-}
-
 // Function to update the user's photo
 exports.updatePhoto = async (req, res) => {
     upload(req, res, async function(error) {
@@ -184,37 +168,35 @@ exports.updatePhoto = async (req, res) => {
             .then(user => {
                 if(user == null) {
                     console.log(`Not found user: ${_id}`)
-                    console.log(error)
+                    res.json({user})
+                    return null
                 }
 
                 console.log(`User ${_id} was found successful`)
+                return user
             })
             .catch(error => {
                 console.log(`Error while finding the user: ${_id}`)
                 console.log(error)
                 res.json({error: true})
             })
-
+        
         if(user == null) return
 
+
         if(user.photo) {
-            await Photo.findById(user.photo)
+            await Photo.findByIdAndDelete(user.photo)
                 .then(async (photo) => {
                     fs.unlinkSync("./image/profile/"+photo.name)
-                    await Photo.deleteOne({_id: user.photo})
-                        .then(() => console.log(`Photo ${user.photo} deleted successful`))
-                        .catch(error => {
-                            console.log(`Error while deleting photo: ${user.photo}`)
-                            console.log(error)
-                        })
+                    console.log(`Photo ${photo._id} was found and deleted successful`)
                 })
                 .catch(error => {
-                    console.log(`Error while finding photo: ${user.photo}`)
+                    console.log(`Error while finding and deleting the photo: ${user.photo}`)
                     console.log(error)
                 })
         }
 
-        const image = new Photo({
+        const newPhoto = new Photo({
             name: photo.filename,
             photo: {
                 data: photo.filename,
@@ -222,35 +204,52 @@ exports.updatePhoto = async (req, res) => {
             }
         })
 
-        const imageSaved = await image.save()
-            .then(image => console.log(`Image ${image._id} saved successful`))
+        const photoSaved = await newPhoto.save()
+            .then(photo => {
+                console.log(`Photo ${photo._id} saved successful`)
+                return photo
+            })
             .catch(error => {
-                console.log(`Error while saving the image ${image}`)
+                console.log(`Error while saving the photo ${newPhoto}`)
                 console.log(error)
                 res.json({error: true})
             })
-        
-        if(!imageSaved) return
+                
+        if(!photoSaved) return
 
-        await User.updateOne({_id}, {$set: {photo: imageSaved}})
-            .then(async() => {
-                await User.findById(_id)
-                    .then(user => {
-                        if(user == null) return
+        // ! ERROR IN THE NEXT LINES
 
-                        console.log(`User ${user._id} was updated`)
-                        res.json({user})
-                    })
-                    .catch(error => {    
-                        console.log(`Error while finding the user: ${user._id}`)
-                        console.log(error)
-                        res.json({error: true})
-                    })
+        const modifying = {
+            photo: {
+                _id: photoSaved._id,
+                name: photoSaved.name
+            }
+        }
+
+        await User.findByIdAndUpdate(_id, {$set: modifying})
+            .then(user => {
+                console.log(`User: ${user._id} was found and updated`)
+                res.json({user})
             })
             .catch(error => {
-                console.log(`Error while updating the user: ${user._id}`)
+                console.log(`Error while finding and updating user: ${_id}`)
                 console.log(error)
                 res.json({error: true})
             })
     })
+}
+// * Function to delete an account
+exports.deleteUser = async(req, res) => {
+    const {_id} = req.body
+
+    await User.deleteOne({_id})
+        .then(() => {
+            console.log(`Account with ID: ${_id} was deleted`)
+            res.json({success: true, _id})
+        })
+        .catch(error => {
+            console.log(`Error while deleting the user ${_id}`)
+            console.log(error)
+            res.json({error: true})
+        })
 }

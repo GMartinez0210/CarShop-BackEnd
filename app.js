@@ -82,15 +82,25 @@ app.route("/api/user")
             return
         }
 
-        console.log("No sent a query")
         await user.readUsers(req, res)
     })
     .post(async(req, res) => {
         await user.createUser(req, res)
     })
     .patch(async(req, res) => {
-        //user.updateUser(req, res)
-        await user.updatePhoto(req, res)
+        const {action} = req.query
+
+        if(action == "user") {
+            await user.updateUser(req, res)
+            return
+        }
+        
+        if (action == "photo") {
+            await user.updatePhoto(req, res)
+            return
+        }
+    
+        res.json({error: true})
     })
     .delete(async(req, res) => {
         await user.deleteUser(req, res)
@@ -109,12 +119,12 @@ app.route("/api/car")
     .patch(async(req, res) => {
         const action = req.body.ACTION || "info"
 
-        if(action === "imagenes") {
+        if(action == "imagenes") {
             await car.updateCarImages(req, res)
             return
         }
         
-        if(action === "info") {
+        if(action == "info") {
             await car.updateCarInfo(req, res)
             return
         }
@@ -141,7 +151,7 @@ app.get("/api/car/description", async function(req, res) {
     await car.getDescription(req, res)
 })
 app.get("/api/car/brand", async function(req, res) {
-    await car.getBrand(req, res)
+    await car.getBrands(req, res)
 })
 
 // Processing the post service
@@ -163,7 +173,8 @@ app.route("/api/post")
 
 const search = require("./service/search/search")
 app.get("/api/search", async function(req, res) {
-    await search.searchCarByName(req, res)
+    if(req.query._id) await search.searchCarByUser(req, res)
+    else await search.searchCar(req, res)
 })
 
 const path = require("path")
@@ -173,6 +184,12 @@ const Image = require("./model/image")
 app.get("/api/image/:name", async function(req, res) {
     const name = req.params.name
     const imagefound = await Image.findOne({name})
+
+    if(imagefound == null) {
+        res.send("")
+        return
+    }
+
     const {name: image} = imagefound
 
     const imagePath = path.join(__dirname+"/image/car", image)
@@ -184,6 +201,12 @@ const Photo = require("./model/photo")
 app.get("/api/photo/:name", async function(req, res) {
     const name = req.params.name
     const photofound = await Photo.findOne({name})
+    
+    if(photofound == null) {
+        res.send("")
+        return
+    }
+
     const {name: photo} = photofound
 
     const photoPath = path.join(__dirname+"/image/profile", photo)

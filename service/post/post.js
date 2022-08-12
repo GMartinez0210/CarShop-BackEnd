@@ -1,6 +1,6 @@
 // Instancing the models needed
 const User = require("../../model/user")
-const CarDetails = require("../../model/carDetails")
+const Car = require("../../model/car")
 const Post = require("../../model/post") 
 
 // Function to create a post
@@ -48,7 +48,7 @@ exports.readPost = async (req, res) => {
                     console.log(`Error while finding the user: ${post.user}`)
                     console.log(error)
                 })
-            const car = await CarDetails.findById(post.car)
+            const car = await Car.findById(post.car)
                 .then(car => {
                     console.log(`Car ${car._id} was found successful`)
                 })
@@ -90,7 +90,7 @@ exports.readPosts = async (req, res) => {
 exports.updatePost = async (req, res) => {
     const {_id, car} = req.body
 
-    const carFound = await CarDetails.findById(car)
+    const carFound = await Car.findById(car)
         .then(car => {
             console.log(`Car details ${car._id} was found sucessful`)
         })

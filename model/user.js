@@ -16,7 +16,7 @@ const user = new mongoose.Schema({
         required: true
     },
     photo: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
     }
 })
 
