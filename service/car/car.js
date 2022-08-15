@@ -109,7 +109,7 @@ exports.createCar = async(req, res) => {
 
 // Function to get a car
 exports.readCar = async(req, res) => {
-    const {_id} = req.body
+    const {_id} = req.query
 
     await Car.findOne({_id})
         .then(car => {

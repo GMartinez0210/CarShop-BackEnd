@@ -110,7 +110,7 @@ app.route("/api/user")
 const car = require("./service/car/car")
 app.route("/api/car")
     .get(async(req, res) => {
-        if(req.body._id) await car.readCar(req, res)
+        if(req.query._id) await car.readCar(req, res)
         else await car.readCars(req, res)
     })
     .post(async(req, res) => {
