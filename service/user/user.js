@@ -217,8 +217,6 @@ exports.updatePhoto = async (req, res) => {
                 
         if(!photoSaved) return
 
-        // ! ERROR IN THE NEXT LINES
-
         const modifying = {
             photo: {
                 _id: photoSaved._id,

@@ -3,12 +3,9 @@ require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
-//const {v4: uuidv4} = require("uuid")
-const bcrypt = require("bcrypt")
 
 const session = require("express-session")
 const passport = require("passport")
-const passportLocalMongoose = require("passport-local-mongoose")
 
 const url = process.env.HOST
 const option = {useNewUrlParser: true}
@@ -38,7 +35,6 @@ app.use(session({
 }))
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(express.static("./image"))
 
 passport.use(User.createStrategy())
 passport.serializeUser(function(user, done) {
