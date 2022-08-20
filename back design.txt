@@ -1,0 +1,61 @@
+route => /api/login
+* get => login.getSession
+* post => login.createSession
+* delete => login.deleteSession
+
+route => /api/user
+* get => user.readUserById || user.readUser
+* post => user.createUser
+* patch => user.updateUser || user.updatePhoto
+* delete => user.deleteUser
+
+route => /api/users
+* get => user.readUsers || user.searchCar
+
+route => /api/car
+* get => car.readCar
+* post => car.createCar
+* patch => car.updateCarImages || car.update
+* delete => car.deleteCar
+
+route => /api/cars
+* get => car.readCars
+* delete => car.deleteCars
+
+route => /api/brand
+* get => brand.readBrand
+* delete => brand.deleteBrand
+
+route => /api/brands
+* get => brand.readBrands
+
+route => /api/description
+* get => description.readDescription
+* delete => description.deleteDescription
+
+route => /api/post
+* get => post.getPost
+* post => post.createPost
+* patch => post.updatePost
+* delete => post.deletePost
+
+route => /api/posts
+* get => post.getPosts
+* delete => post.deletePosts
+
+route => /api/favorite
+* get => favorite.getFavorite
+* post => favorite.addFavorite
+* delete => favorite.deleteFavorite
+
+route => /api/favorites
+* get => favorite.getFavoriteCars
+
+route => /api/search
+* get => search.searchCars
+
+route => /api/image
+* get => image.getImage
+
+route => /api/photo
+* get => photo.getPhoto

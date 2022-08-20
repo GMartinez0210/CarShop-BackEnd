@@ -5,7 +5,10 @@ const cors = require("cors")
 const mongoose = require("mongoose")
 
 const session = require("express-session")
-const passport = require("passport")
+const cookieParser = require("cookie-parser")
+//const passport = require("passport")
+
+const path = require("path")
 
 const url = process.env.HOST
 const option = {useNewUrlParser: true}
@@ -18,21 +21,36 @@ mongoose.connect(url, option, error => {
 
     console.log("Connected to the database")
 })
-//mongoose.set("autoIndex", true)
 
-const User = require("./model/user")
+//const User = require("./model/user")
 
 // Instancing the app server
 const app = express()
 
-app.use(cors())  
-app.use(express.urlencoded({extended: true}))
+// ? FROM CORS TO COOKIE-PARSER AREN'T NEEDED
+app.use(cors({
+    origin: ["http://localhost:3000"],
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    credentials: true
+}))  
 app.use(session({
+    key: "userSession",
     secret: "Little Secret",
     resave: false,
-    saveUninitialized: true,
-    cookie: {secure: true}
+    saveUninitialized: false,
+    cookie: {
+        //httpOnly: true,
+        //sameSite: "strict",
+        //secure: true,
+        expires: 60 * 60 * 24 * 7
+    }
 }))
+app.use(cookieParser())
+app.use(express.urlencoded({extended: true}))
+
+//app.use(express.static("../app/dist"))
+
+/*
 app.use(passport.initialize())
 app.use(passport.session())
 
@@ -45,22 +63,20 @@ passport.deserializeUser(function(_id, done) {
         done(error, user)
     })
 })
+*/
 
-app.get("/api/session", function(req, res) {    
-    res.send([req.session, req.sessionStore])
-})
-
+// Processing the log in/ sign in service
 const login = require("./service/login/login")
-
-// Processing the log in/ sign in
-app.post("/api/login", async function(req, res) {
-    await login.singIn(req, res)
-})
-
-// Processing the log out/ sign out
-app.post("/api/logout", async function(req, res) {
-    await login.singOut(req, res)
-})
+app.route("/api/login")
+    .get(function(req, res) {
+        login.getSession(req, res)
+    })
+    .post(async(req, res) => {
+        await login.createSession(req, res)
+    })
+    .delete(async(req, res) => {
+        await login.deleteSession(req, res)
+    })
 
 // Processing the user service
 const user = require("./service/user/user")
@@ -143,9 +159,6 @@ app.route("/api/car")
     })
 
 // Processing extra methods for getting car data
-app.get("/api/car/description", async function(req, res) {
-    await car.getDescription(req, res)
-})
 app.get("/api/car/brand", async function(req, res) {
     await car.getBrands(req, res)
 })
@@ -153,18 +166,41 @@ app.get("/api/car/brand", async function(req, res) {
 // Processing the post service
 const post = require("./service/post/post")
 app.route("/api/post")
-    .get(async (req, res) => {
+    .get(async(req, res) => {
         if(req.body._id) await post.readPost(req, res)
         else await post.readPosts(req, res)
     })
-    .post(async (req, res) => {
+    .post(async(req, res) => {
         await post.createPost(req, res)
     })
-    .patch(async (req, res) => {
+    .patch(async(req, res) => {
         await post.updatePost(req, res)
     })
-    .delete(async (req, res) => {
+    .delete(async(req, res) => {
         await post.deletePost(req, res)
+    })
+
+const favorite = require("./service/favorite/favorite")
+app.route("/api/favorite")
+    .get(async(req, res) => {
+        const {car} = req.query
+
+        console.log(car)
+
+        if(car) {
+            await favorite.getFavorite(req, res)
+            return
+        }
+
+        //await favorite.getFavorites(req, res)
+        
+        await favorite.getFavoriteCars(req, res)
+    })
+    .post(async(req, res) => {
+        await favorite.addFavorite(req, res)
+    })
+    .delete(async(req, res) => {
+        await favorite.removeFavorite(req, res)
     })
 
 const search = require("./service/search/search")
@@ -172,8 +208,6 @@ app.get("/api/search", async function(req, res) {
     if(req.query._id) await search.searchCarByUser(req, res)
     else await search.searchCar(req, res)
 })
-
-const path = require("path")
     
 // Processing the image service based on name
 const Image = require("./model/image")
@@ -209,6 +243,15 @@ app.get("/api/photo/:name", async function(req, res) {
     
     res.sendFile(photoPath)
 })
+
+// ? At the end, if not, the rest gets 
+// ? operations will never be executed
+// Deploying the front-end
+/*
+app.get("/*", function(req, res) {
+    res.sendFile(path.join(__dirname, "../app/dist", "index.html"))
+})
+*/
 
 // Running the server
 const port = process.env.PORT || 4000
