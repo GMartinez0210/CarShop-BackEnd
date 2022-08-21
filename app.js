@@ -48,7 +48,7 @@ app.use(session({
 app.use(cookieParser())
 app.use(express.urlencoded({extended: true}))
 
-//app.use(express.static("../app/dist"))
+app.use(express.static("../app/dist"))
 
 /*
 app.use(passport.initialize())
@@ -84,26 +84,26 @@ app.route("/api/user")
     .get(async(req, res) => {
         const {_id, email} = req.query
 
-        if(_id != null) {
-            user.readUserById(req, res)
+        if(_id) {
+            user.readById(req, res)
             return
         }
 
-        if(email != null) {
-            user.readUser(req, res)
+        if(email) {
+            user.readOne(req, res)
             return
         }
 
-        await user.readUsers(req, res)
+        res.json({error: true})
     })
     .post(async(req, res) => {
-        await user.createUser(req, res)
+        await user.createOne(req, res)
     })
     .patch(async(req, res) => {
         const {action} = req.query
 
         if(action == "user") {
-            await user.updateUser(req, res)
+            await user.updateOne(req, res)
             return
         }
         
@@ -115,53 +115,59 @@ app.route("/api/user")
         res.json({error: true})
     })
     .delete(async(req, res) => {
-        await user.deleteUser(req, res)
+        await user.deleteOne(req, res)
+    })
+
+app.route("/api/users")
+    .get(async(req, res) => {
+        await user.readAll(req, res)
     })
 
 // Processing the car service
 const car = require("./service/car/car")
 app.route("/api/car")
     .get(async(req, res) => {
-        if(req.query._id) await car.readCar(req, res)
-        else await car.readCars(req, res)
+        await car.readOne(req, res)
     })
     .post(async(req, res) => {
-        await car.createCar(req, res)
+        await car.createOne(req, res)
     })
     .patch(async(req, res) => {
         const action = req.body.ACTION || "info"
 
         if(action == "imagenes") {
-            await car.updateCarImages(req, res)
+            await car.updateImages(req, res)
+            return
+        }
+
+        if(action == "description") {
+            await car.updateDescription(req, res)
             return
         }
         
         if(action == "info") {
-            await car.updateCarInfo(req, res)
+            await car.updateInfo(req, res)
             return
         }
 
         res.json({error: true})
     })
     .delete(async function(req, res) {
-        const {ACTION} = req.body || "one"
-        if(ACTION === "one") {
-            await car.deleteCar(req, res)
-            return
-        }
-
-        if(ACTION === "many") {
-            await car.deleteCars(req, res)
-            return
-        }
-
-        res.json({error: true})
+        await car.deleteOne(req, res)
     })
 
-// Processing extra methods for getting car data
-app.get("/api/car/brand", async function(req, res) {
-    await car.getBrands(req, res)
-})
+app.route("/api/cars")
+    .get(async(req, res) => {
+        if(req.query._id) {
+            await car.readMany(req, res)
+            return
+        }
+
+        await car.readAll(req, res)
+    })
+    .delete(async(req, res) => {
+        await car.deleteMany(req, res)
+    })
 
 // Processing the post service
 const post = require("./service/post/post")
@@ -180,78 +186,59 @@ app.route("/api/post")
         await post.deletePost(req, res)
     })
 
+// Processing the favorite service
 const favorite = require("./service/favorite/favorite")
 app.route("/api/favorite")
     .get(async(req, res) => {
         const {car} = req.query
 
-        console.log(car)
-
         if(car) {
-            await favorite.getFavorite(req, res)
+            await favorite.check(req, res)
             return
         }
 
-        //await favorite.getFavorites(req, res)
-        
         await favorite.getFavoriteCars(req, res)
     })
     .post(async(req, res) => {
-        await favorite.addFavorite(req, res)
+        await favorite.addOne(req, res)
     })
     .delete(async(req, res) => {
-        await favorite.removeFavorite(req, res)
+        await favorite.removeOne(req, res)
     })
 
+// Processing extra methods for getting car data
+const brand = require("./service/brand/brand")
+app.get("/api/brand", async function(req, res) {
+    await brand.readAll(req, res)
+})
+
+// Processing the search service 
 const search = require("./service/search/search")
 app.get("/api/search", async function(req, res) {
-    if(req.query._id) await search.searchCarByUser(req, res)
-    else await search.searchCar(req, res)
+    await search.byBrandAndModel(req, res)
+})
+app.get("/api/search/brand", async function(req, res) {
+    await search.byBrand(req, res)
+})
+app.get("/api/search/user", async function(req, res) {
+    await search.byUser(req, res)
 })
     
-// Processing the image service based on name
-const Image = require("./model/image")
+const picture = require("./service/picture/picture")
+// Processing the car image service based on name
 app.get("/api/image/:name", async function(req, res) {
-    const name = req.params.name
-    const imagefound = await Image.findOne({name})
-
-    if(imagefound == null) {
-        res.send("")
-        return
-    }
-
-    const {name: image} = imagefound
-
-    const imagePath = path.join(__dirname+"/image/car", image)
-    
-    res.sendFile(imagePath)
+    await picture.getImage(req, res)
 })
 
-const Photo = require("./model/photo")
+// Processing the user photo service based on name
 app.get("/api/photo/:name", async function(req, res) {
-    const name = req.params.name
-    const photofound = await Photo.findOne({name})
-    
-    if(photofound == null) {
-        res.send("")
-        return
-    }
-
-    const {name: photo} = photofound
-
-    const photoPath = path.join(__dirname+"/image/profile", photo)
-    
-    res.sendFile(photoPath)
+    await picture.getPhoto(req, res)
 })
 
-// ? At the end, if not, the rest gets 
-// ? operations will never be executed
 // Deploying the front-end
-/*
 app.get("/*", function(req, res) {
     res.sendFile(path.join(__dirname, "../app/dist", "index.html"))
 })
-*/
 
 // Running the server
 const port = process.env.PORT || 4000

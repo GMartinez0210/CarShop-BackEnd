@@ -3,7 +3,6 @@ const mongoose = require("mongoose")
 const car = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
         required: true
     },
     licensePlate: {
@@ -11,28 +10,11 @@ const car = new mongoose.Schema({
         required: true
     },
     images: {
-        type: mongoose.Schema.Types.Array,
+        type: [mongoose.SchemaTypes.ObjectId],
         required: true
     },
-    brand: {
-        type: String,
-        required: true
-    },
-    model: {
-        type: String,
-        required: true
-    },
-    engine: {
-        type: String,
-        required: true
-    },
-    gears: {
-        type: String,
-        required: true
-    },
-    seats: {
-        type: Number,
-        default: 2,
+    description: {
+        type: mongoose.SchemaTypes.ObjectId,
         required: true
     },
     price: {

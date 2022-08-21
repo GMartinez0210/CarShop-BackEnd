@@ -2,13 +2,25 @@ const bcrypt = require("bcrypt")
 const User = require("../../model/user")
 
 exports.getSession = (req, res) => {
-    const userID = req.session.userID
-        if(!userID) {
-            res.json({loggedIn: false, userID})
-            return
-        }
+    const userID = req.query.user
+    const sessionUserID = req.session.userID
 
-    res.json({loggedIn: true, userID})
+    if(!userID) {
+        res.json({loggedIn: false})
+        return
+    }
+
+    if(!sessionUserID) {
+        res.json({loggedIn: false})
+        return
+    }
+
+    if(userID != sessionUserID) {
+        res.json({loggedIn: false})
+        return
+    }
+
+    res.json({loggedIn: true, userID: sessionUserID})
 }
 
 exports.createSession = async (req, res) => {
@@ -19,18 +31,17 @@ exports.createSession = async (req, res) => {
             if(user == null) {
                 console.log("Not found the user")
                 res.json({user: null})
+                return
             }
 
             if(!bcrypt.compareSync(password, user.password)) {
                 console.log("Password incorrect")
                 res.json({email: true, password: false})
+                return
             }
 
             req.session.userID = user._id
-            console.log(req.session)
-
             console.log("Session started")
-            
             console.log("Signing in successful")
             res.json({
                 loggedIn: true, 

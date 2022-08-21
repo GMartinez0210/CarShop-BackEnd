@@ -3,7 +3,7 @@ require("dotenv").config()
 const bcrypt = require("bcrypt")
 const fs = require("fs")
 
-const round = +process.env.ROUND_HASH
+//const round = +process.env.ROUND_HASH
 
 // * Instancing the models
 const User = require("../../model/user")
@@ -23,35 +23,49 @@ const upload = multer({
     storage
 }).single("photo")
 
-// * Function to read all the users
-exports.readUsers = async(req, res) => {
-    await User.find()
-        .then(users => {
-            if(users.length == 0) {
-                console.log("No users")
-                res.json({users: []})
+// * Function to read by email one user
+exports.readOne = async(req, res) => {
+    const { email } = req.query
+
+    if(!email) {
+        console.log("No parameter given")
+        res.json({user: null})
+        return
+    }
+
+    await User.findOne({email})
+        .then(user => {
+            if(!user) {
+                console.log("No user found")
+                res.json({user: null})
                 return
             }
 
-            console.log(`${users.length} users found`)
-            res.json({users})
+            console.log("User was found successful")
+            res.json({user})
         })
         .catch(error => {
-            console.log(`Error while finding all the users`)
+            console.log(`Error while finding the user with email: ${email}`)
             console.log(error)
             res.json({error: true})
         })
 }
 
 // * Function to read by id one user
-exports.readUserById = async(req, res) => {
+exports.readById = async(req, res) => {
     const {_id} = req.query
+
+    if(!_id) {
+        console.log("No parameter given")
+        res.json({user: null})
+        return
+    }
 
     await User.findById(_id)
         .then(user => {
             if(user == null) {
                 console.log("No user")
-                res.json({user})
+                res.json({user: null})
                 return
             }
     
@@ -65,31 +79,35 @@ exports.readUserById = async(req, res) => {
         })
 }
 
-// * Function to read by email one user
-exports.readUser = async(req, res) => {
-    const {email} = req.query
-
-    await User.find({email})
-        .then(user => {
-            if(user.length == 0) {
-                console.log("No user")
-                res.json({user: null})
+// * Function to read all the users
+exports.readAll = async(req, res) => {
+    await User.find()
+        .then(users => {
+            if(users.length == 0) {
+                console.log("No users")
+                res.json({users: null})
                 return
             }
-    
-            console.log("User found sucessful")
-            res.json({user})
+
+            console.log(`${users.length} users found`)
+            res.json({users})
         })
         .catch(error => {
-            console.log(`Error while finding the user with email: ${email}`)
+            console.log(`Error while finding all the users`)
             console.log(error)
             res.json({error: true})
         })
 }
 
 // * Function to create an account
-exports.createUser = async(req, res) => {
+exports.createOne = async(req, res) => {
     const {fullname, email, password} = req.body
+
+    if(!fullname || !email || !password) {
+        console.log("Missing a parameter")
+        res.json({user: null})
+        return
+    }
 
     await User.findOne({email})
         .then(async(userFound) => {
@@ -99,7 +117,7 @@ exports.createUser = async(req, res) => {
                 return
             }
 
-            const salt = bcrypt.genSaltSync(round)
+            const salt = bcrypt.genSaltSync(+process.env.ROUND_HASH)
             const hash = bcrypt.hashSync(password, salt)
     
             const user = new User({
@@ -127,10 +145,16 @@ exports.createUser = async(req, res) => {
 }
 
 // * Function to update an account
-exports.updateUser = async(req, res) => {
+exports.updateOne = async(req, res) => {
     const {_id, fullname, email, password} = req.body
 
-    const salt = bcrypt.genSaltSync(round)
+    if(!_id || !fullname || !email || !password) {
+        console.log("Missing a parameter")
+        res.json({user: null})
+        return
+    }
+
+    const salt = bcrypt.genSaltSync(+process.env.ROUND_HASH)
     const hash = bcrypt.hashSync(password, salt)
 
     const user = {
@@ -139,13 +163,33 @@ exports.updateUser = async(req, res) => {
         password: hash
     }
 
-    await User.updateOne({_id}, {$set: user})
-        .then(() => {
+    const userUpdated = await User.updateOne(_id, {$set: user})
+        .then(userUpdated => {
             console.log(`Account ${_id} was updated successfully`)
-            res.json({_id, ...user})
+            return userUpdated
         })
         .catch(error => {
             console.log(`Error while updating the user ${_id}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!userUpdated) return
+
+    await User.findById(userUpdated._id)
+        .then(user => {
+            if(user == null) {
+                console.log("No user")
+                res.json({user: null})
+                return
+            }
+
+            console.log("User found sucessful")
+            res.json({user})
+        })
+        .catch(error => {
+            console.log(`Error while finding the user: ${_id}`)
             console.log(error)
             res.json({error: true})
         })
@@ -163,6 +207,12 @@ exports.updatePhoto = async (req, res) => {
 
         const {_id} = req.body
         const photo = req.file
+
+        if(!_id || !photo) {
+            console.log("Missing a parameter")
+            res.json({user: null})
+            return
+        }
 
         const user = await User.findById(_id)
             .then(user => {
@@ -183,10 +233,9 @@ exports.updatePhoto = async (req, res) => {
         
         if(user == null) return
 
-
         if(user.photo) {
             await Photo.findByIdAndDelete(user.photo)
-                .then(async (photo) => {
+                .then(photo => {
                     fs.unlinkSync("./image/profile/"+photo.name)
                     console.log(`Photo ${photo._id} was found and deleted successful`)
                 })
@@ -237,13 +286,13 @@ exports.updatePhoto = async (req, res) => {
     })
 }
 // * Function to delete an account
-exports.deleteUser = async(req, res) => {
+exports.deleteOne = async(req, res) => {
     const {_id} = req.body
 
-    await User.deleteOne({_id})
-        .then(() => {
-            console.log(`Account with ID: ${_id} was deleted`)
-            res.json({success: true, _id})
+    await User.findByIdAndDelete(_id)
+        .then(user => {
+            console.log(`User with ID: ${_id} was deleted`)
+            res.json({user})
         })
         .catch(error => {
             console.log(`Error while deleting the user ${_id}`)

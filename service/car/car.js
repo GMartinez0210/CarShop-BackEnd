@@ -3,6 +3,8 @@ const multer = require("multer")
 
 const User = require("../../model/user")
 const Image = require("../../model/image")
+const Brand = require("../../model/brand")
+const Description = require("../../model/description")
 const Car = require("../../model/car")
 
 const storage = multer.diskStorage({
@@ -17,7 +19,7 @@ const upload = multer({
 }).array("images", 5)
 
 // Function to create a car
-exports.createCar = async(req, res) => {
+exports.createOne = async(req, res) => {
     upload(req, res, async function(error){
         if(error) {
             console.log("Error in upload function")
@@ -32,8 +34,12 @@ exports.createCar = async(req, res) => {
 
         const images = req.files
 
-        if(!images) {
-            console.log("No images")
+        if(!images || !licensePlate 
+        || !brand || !model 
+        || !price || !about
+        || !engine || !gears 
+        || !seats || !user) {
+            console.log("Missing a parameter")
             res.json({error: true})
             return
         }
@@ -43,7 +49,7 @@ exports.createCar = async(req, res) => {
                 if(userFound == null) {
                     console.log(`Not user ${user} found`)
                     res.json({car: null})
-                    return
+                    return null
                 }
 
                 console.log(`User ${user} was found successfull`)
@@ -52,9 +58,10 @@ exports.createCar = async(req, res) => {
             .catch(error => {
                 console.log(error)
                 res.json({error: true})
+                return null
             })
         
-        if(userFound == null) return
+        if(!userFound) return
         
         const arrayImages = images.map(imageUploaded => {
             const image = new Image({
@@ -73,7 +80,7 @@ exports.createCar = async(req, res) => {
                 console.log("Image saved successful")
             })
 
-            return {_id: image._id, name: imageUploaded.filename}
+            return image
         })
         
         if(arrayImages.some(item => item._id == null)) {
@@ -81,15 +88,21 @@ exports.createCar = async(req, res) => {
             return
         }
         
-        const car = new Car({
-            user,
-            licensePlate,
-            images: arrayImages,
-            brand,
+        const brandFOC = await findOrCreate(Brand, {name: brand})
+
+        const descriptionFOC = await findOrCreate(Description, {
+            brand: brandFOC,
             model,
             engine,
             gears,
             seats,
+        })
+
+        const car = new Car({
+            user,
+            licensePlate,
+            images: arrayImages,
+            description: descriptionFOC,            
             price, 
             about
         })
@@ -108,70 +121,496 @@ exports.createCar = async(req, res) => {
 }
 
 // Function to get a car
-exports.readCar = async(req, res) => {
+exports.readOne = async(req, res) => {
     const {_id} = req.query
 
-    await Car.findOne({_id})
+    if(!_id) {
+        console.log("No parameter given")
+        res.json({error: true})
+        return
+    }
+
+    const car = await Car.findById(_id)
         .then(car => {
-            console.log(`Car Details Item with ID: ${_id} was found`)
-            res.json({car})
+            if(!car) {
+                console.log("No car found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Car with ID: ${_id} was found`)
+            return car
         })
         .catch(error => {
             console.log(`Error while finding the car details: ${_id}`)
             console.log(error)
             res.json({error: true})
+            return null
         })
+
+    if(!car) return
+
+    const description = await Description.findById(car.description)
+        .then(description => {
+            if(!description) {
+                console.log("No description found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Description with ID: ${car.description} was found`)
+            return description
+        })
+        .catch(error => {
+            console.log(`Error while finding the description: ${car.description}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!description) return
+
+    const brand = await Brand.findById(description.brand)
+        .then(brand => {
+            if(!brand) {
+                console.log("No brand found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Brand with ID: ${description.brand} was found`)
+            return brand.name
+        })
+        .catch(error => {
+            console.log(`Error while finding the brand: ${description.brand}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!brand) return
+
+    const images = await Image.find({_id: car.images})
+        .then(images => {
+            if(!images) {
+                console.log("No images found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Images with ID: ${car.images} was found`)
+            
+            const imageNames = images.map(image => image.name)
+
+            return imageNames
+        })
+        .catch(error => {
+            console.log(`Error while finding the images: ${car.images}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!images) return
+    
+    const carInfo = {
+        ...car._doc,
+        ...description._doc,
+        images,brand,
+        _id: car._id
+    }
+
+    res.json({car: carInfo})
+}
+
+// Function to get many cars by many ids
+exports.readMany = async(req, res) => {
+    const {_id} = req.query
+
+    if(!_id) {
+        console.log("No parameter given")
+        res.json({error: true})
+        return
+    }
+
+    const cars = await Car.find({_id})
+        .then(cars => {
+            if(!cars) {
+                console.log("No car found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Car with ID: ${_id} were found`)
+            return cars
+        })
+        .catch(error => {
+            console.log(`Error while finding the cars: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!cars) return
+
+    const descriptionIDs = cars.map(car => car.description)
+
+    const descriptions = await Description.find({_id: descriptionIDs})
+        .then(descriptions => {
+            if(!descriptions) {
+                console.log("No description found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Description with ID: ${descriptionIDs} were found`)
+            return descriptions
+        })
+        .catch(error => {
+            console.log(`Error while finding the description: ${descriptionIDs}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!descriptions) return
+
+    const brandIDs = descriptions.map(description => description.brand)
+
+    const brands = await Brand.find({_id: brandIDs})
+        .then(brands => {
+            if(!brands) {
+                console.log("No brand found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Brand with ID: ${brandIDs} was found`)
+            return brands
+        })
+        .catch(error => {
+            console.log(`Error while finding the brand: ${brandIDs}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!brands) return
+
+    const imagesIDs = []
+    
+    cars.forEach(car => {
+        car.images.forEach(image => imagesIDs.push(image))
+    })
+
+    const imagesArray = await Image.find({_id: imagesIDs})
+        .then(images => {
+            if(!images) {
+                console.log("No images found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Images with ID: ${imagesIDs} were found`)
+            
+            return images
+        })
+        .catch(error => {
+            console.log(`Error while finding the images: ${imagesIDs}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!imagesArray) return
+
+    const descriptionAndBrand = descriptions.map(description => {
+        const [brand] = brands.filter(brand => 
+            brand._id.toString() == description.brand.toString())
+
+        return {
+            ...description._doc,
+            brand: brand.name
+        }
+    })
+
+    const carAndDescription = cars.map(car => {
+        const [description] = descriptionAndBrand.filter(description =>
+            description._id.toString() == car.description.toString()
+        )
+
+        return {
+            ...description,
+            ...car._doc
+        }
+    })
+
+    const carAndImages = carAndDescription.map(car => {
+        const images = []
+        
+        imagesArray.forEach(image => {            
+            car.images.forEach(carImage => {
+                if(carImage.toString() == image._id.toString()) {
+                    images.push(image.name)
+                }
+            })
+        })
+
+        return {
+            ...car,
+            images
+        } 
+    })
+
+    res.json({cars: carAndImages})
 }
 
 // Function to get all the cars
-exports.readCars = async(req, res) => {
-    await Car.find().limit(5)
-        .then(car => {
-            console.log(`Car Details were found`)
-            res.json({car})
+exports.readAll = async(req, res) => {
+    const brands = await Brand.find()
+        .then(brands => {
+            if(!brands) {
+                console.log("No brands found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log("Brands were found successfull")
+            return brands
         })
         .catch(error => {
-            console.log("Error while finding all the cars details")
+            console.log("Error while finding all the brands")
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!brands) return
+
+    const brandIDs = brands.map(brand => brand._id)
+
+    const descriptions = await Description.find({brand: brandIDs})
+        .then(descriptions => {
+            if(!descriptions) {
+                console.log("No descriptions found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log("Descriptions were found successfull")
+
+            return descriptions
+        })
+        .catch(error => {
+            console.log("Error while finding all the descriptions")
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!descriptions) return
+
+    const descriptionsInfo = descriptions.map(description => {
+        const [brandName] = brands.filter(brand => 
+            brand._id.toString() == description.brand.toString())
+
+        return {
+            ...description._doc,
+            brand: brandName.name,
+        }
+    })
+    
+    const descriptionIDs = descriptions.map(description => description._id)
+
+    const cars = await Car.find({description: descriptionIDs})
+        .then(cars => {
+            if(!cars) {
+                console.log("No cars found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log("Cars were found successfull")
+            return cars
+        })
+        .catch(error => {
+            console.log("Error while finding all the cars")
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    const carInfo = cars.map(car => {
+        const [descriptionInfo] = descriptionsInfo.filter(description => 
+            description._id.toString() == car.description.toString())
+
+        return {
+            ...descriptionInfo,
+            ...car._doc
+        }
+    })
+
+    const imagesIDs = []
+    
+    carInfo.forEach(car => {
+        car.images.forEach(image => imagesIDs.push(image))
+    })
+
+    const imagesArray = await Image.find({_id: imagesIDs})
+        .then(images => {
+            if(!images) {
+                console.log("No images found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`Images with ID: ${imagesIDs} were found`)
+            
+            return images
+        })
+        .catch(error => {
+            console.log(`Error while finding the images: ${imagesIDs}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    if(!imagesArray) return
+
+    const carAndImages = carInfo.map(car => {
+        const images = []
+        
+        imagesArray.forEach(image => {            
+            car.images.forEach(carImage => {
+                if(carImage.toString() == image._id.toString()) {
+                    images.push(image.name)
+                }
+            })
+        })
+
+        return {
+            ...car,
+            images
+        } 
+    })
+
+    res.json({cars: carAndImages})
+}
+
+// Function to update the car info
+exports.updateOne = async(req, res) => {
+    const { licensePlate, price, 
+        about, user, _id } = req.body
+    
+    if(!_id) {
+        console.log("Missing the id")
+        res.json({error: true})
+        return
+    }
+
+    const modifying = Object.fromEntries(Object.entries({
+        licensePlate, price, 
+        about, user
+    }).filter(value => value[1]))
+
+    await Car.updateOne({_id}, {$set: modifying})
+        .then(() => {
+            console.log(`Car: ${_id} was found successful`)
+            res.json({error: false})
+        })
+        .catch(error => {
+            console.log(`Error while updating the car: ${_id}`)
             console.log(error)
             res.json({error: true})
         })
 }
 
-// Function to update the car info
-exports.updateCarInfo = async(req, res) => {
-    const { licensePlate, brand, model,
-        price, about, engine,
-        gears, seats, user, _id } = req.body
+// Function to update the car description
+exports.updateDescription = async(req, res) => {
+    const { brand, model, engine, 
+        gears, seats, _id } = req.body
 
-    const car = {
-        user,
-        licensePlate,
-        brand,
-        model,
-        engine,
-        gears,
-        seats,
-        price, 
-        about
+    if(!_id) {
+        console.log("ID missing")
+        res.json({error: true})
+        return
     }
+    
+    const car = await Car.findById(_id)
+        .then(car => {
+            if(!car) {
+                console.log("No car found")
+                res.json({car: null})
+                return null
+            }
 
-    const modifying = Object.fromEntries(Object.entries(car)
-        .filter(value => value[1]))
+            console.log(`Car with ID: ${_id} was found`)
+            return car
+        })
+        .catch(error => {
+            console.log(`Error while finding the car details: ${_id}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
 
+    if(!car) return
+
+    const description = await Description.findById(car.description)
+        .then(description => {
+            if(!description) {
+                console.log("No car found")
+                res.json({car: null})
+                return null
+            }
+
+            console.log(`description with ID: ${car.description} was found`)
+            return description
+        })
+        .catch(error => {
+            console.log(`Error while finding the description details: ${car.description}`)
+            console.log(error)
+            res.json({error: true})
+            return null
+        })
+
+    const newBrand = !!brand 
+        ? await findOrCreate(Brand, {name: brand})
+        : null
+
+    const gotDescription = Object.fromEntries(Object.entries({
+        model, engine, gears, seats
+    }).filter(value => value[1]))
+
+    const descriptionSchema = {
+        brand: !!newBrand ? newBrand._id : description.brand,
+        model: description.model,
+        engine: description.engine,
+        gears: description.gears,
+        seats: description.seats,
+        ...gotDescription,
+    }
+    
+    const newDescription = await findOrCreate(Description, descriptionSchema)
+    
+    const modifying = {
+        description: newDescription._id
+    }
+    
     await Car.updateOne({_id}, {$set: modifying})
         .then(() => {
-            console.log(`Updated successfull: ${_id}`)
+            console.log(`Car: ${_id} was found successful`)
             res.json({error: false})
         })
         .catch(error => {
-            console.log(`Error while updating the car details: ${_id}`)
+            console.log(`Error while updating the car: ${_id}`)
             console.log(error)
             res.json({error: true})
         })
 }
 
 // Function to update the car images
-exports.updateCarImages = async(req, res) => {
+exports.updateImages = async(req, res) => {
     upload(req, res, async function(error) {
         if(error) {
             console.log("Error in upload function")
@@ -183,8 +622,8 @@ exports.updateCarImages = async(req, res) => {
         const {_id} = req.body
         const images = req.files
 
-        if(!images) {
-            console.log("No images")
+        if(!_id || !images) {
+            console.log("Missing parameters")
             res.json({error: true})
             return
         }
@@ -239,7 +678,7 @@ exports.updateCarImages = async(req, res) => {
                 console.log("Image saved successful")
             })
 
-            return {_id: image._id, name: image.name}
+            return image
         })
 
         const modifying = {images: arrayImages}
@@ -258,9 +697,15 @@ exports.updateCarImages = async(req, res) => {
     })
 }
 
-// Function to remove a car
-exports.deleteCar = async(req, res) => {
+// Function to delete a car
+exports.deleteOne = async(req, res) => {
     const _id = req.body._id
+
+    if(!_id) {
+        console.log("Missing the id")
+        res.json({error: true})
+        return
+    }
 
     await Car.findByIdAndDelete({_id})
         .then(car => {
@@ -286,7 +731,7 @@ exports.deleteCar = async(req, res) => {
             }
 
             console.log(`Car Details Item with ID: ${_id} was deleted`)
-            res.json({error: false, ...car})
+            res.json({error: false})
         })
         .catch(error => {
             console.log(`Error while deleting the car details: ${_id}`)
@@ -295,8 +740,15 @@ exports.deleteCar = async(req, res) => {
         })
 }
 
-exports.deleteCars = async(req, res) => {
+// Function to delete many cars based on user's id
+exports.deleteMany = async(req, res) => {
     const {_id} = req.body
+
+    if(!_id) {
+        console.log("Missing the user's id")
+        res.json({error: true})
+        return
+    }
 
     await Car.deleteMany({user: _id})
         .then(response => {
@@ -310,28 +762,23 @@ exports.deleteCars = async(req, res) => {
         })
 }
 
-// Function to get all the brands
-exports.getBrands = async(req, res) => {
-    const cars = await Car.find()
-        .then(car => {
-            console.log(`Car Details were found`)
-            return car
-        })
-        .catch(error => {
-            console.log("Error while finding all the cars details")
-            console.log(error)
-            res.json({error: true})
-            return null
-        })
+// Function to find or create a new item in the database
+async function findOrCreate(model, schema) {
+    const item = await model.findOne(schema)
+        .then(itemFound => {
+            console.log("Item was found successful")
+            return itemFound
+        }) 
 
-    if(cars == null) return
+    if(item) {
+        console.log("Item sent successful")
+        return item
+    }
 
-    const allBrands = cars.map(car => car.brand)
+    const newItem = new model(schema)
 
-    const brands = allBrands.map((brand, index) => {
-        if(allBrands.indexOf(brand) == index) return brand
-    }).filter(brand => brand != null)
+    await newItem.save()
 
-    console.log("Brands were sent successful")
-    res.json({brands})
+    console.log("New Item created and sent sucessful")
+    return newItem
 }
