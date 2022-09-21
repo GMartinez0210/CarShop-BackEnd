@@ -7,6 +7,8 @@ const Brand = require("../../model/brand")
 const Description = require("../../model/description")
 const Car = require("../../model/car")
 
+const { findOrCreate } = require("../../utilities")
+
 const storage = multer.diskStorage({
     destination: "image/car",
     filename: function(req, file, cb) {
@@ -760,25 +762,4 @@ exports.deleteMany = async(req, res) => {
             console.log(error)
             res.json({error: true})
         })
-}
-
-// Function to find or create a new item in the database
-async function findOrCreate(model, schema) {
-    const item = await model.findOne(schema)
-        .then(itemFound => {
-            console.log("Item was found successful")
-            return itemFound
-        }) 
-
-    if(item) {
-        console.log("Item sent successful")
-        return item
-    }
-
-    const newItem = new model(schema)
-
-    await newItem.save()
-
-    console.log("New Item created and sent sucessful")
-    return newItem
 }

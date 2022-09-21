@@ -6,7 +6,9 @@ const mongoose = require("mongoose")
 
 const session = require("express-session")
 const cookieParser = require("cookie-parser")
-//const passport = require("passport")
+
+const passport = require("passport")
+const GoogleStrategy = require("passport-google-oauth20")
 
 const path = require("path")
 
@@ -22,7 +24,6 @@ mongoose.connect(url, option, error => {
     console.log("Connected to the database")
 })
 
-//const User = require("./model/user")
 
 // Instancing the app server
 const app = express()
@@ -50,11 +51,13 @@ app.use(express.urlencoded({extended: true}))
 
 app.use(express.static("../app/dist"))
 
-/*
 app.use(passport.initialize())
 app.use(passport.session())
 
+const User = require("./model/user")
+
 passport.use(User.createStrategy())
+
 passport.serializeUser(function(user, done) {
     done(null, user._id)
 })
@@ -63,7 +66,33 @@ passport.deserializeUser(function(_id, done) {
         done(error, user)
     })
 })
-*/
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+    },
+    function(accessToken, refreshToken, profile, cb) {
+        console.log(profile)
+        
+        User.findOrCreate({googleId: profile.id}, function(error, user) {
+            return cb(error, user)
+        })
+    })
+)
+
+// Processing the log in/ sing in using Google
+app.get("/auth/google",
+    passport.authenticate("google", { scope: ["profile"] })
+)
+
+app.get("/auth/google/rentit", 
+    passport.authenticate("google", { failureRedirect: "/login" }),
+    function(req, res) {
+        res.redirect("/")
+    }
+)
 
 // Processing the log in/ sign in service
 const login = require("./service/login/login")
@@ -72,7 +101,31 @@ app.route("/api/login")
         login.getSession(req, res)
     })
     .post(async(req, res) => {
-        await login.createSession(req, res)
+        // TODO Fix the login process
+        // TODO Make the passport do it
+        // TODO Asimilate the changes in the frontend
+        
+        //await login.createSession(req, res)
+        
+        const user = new User({
+            email: req.body.email,
+            password: req.body.password
+        })
+    
+        console.log(user)
+
+        /*
+        req.login(user, function(error) {
+            if(error) {
+                console.log(error)
+                return
+            }
+    
+            passport.authenticate("local")(req, res, function() {
+                res.redirect("/home")
+            })
+        })
+        */
     })
     .delete(async(req, res) => {
         await login.deleteSession(req, res)
@@ -204,6 +257,21 @@ app.route("/api/favorite")
     })
     .delete(async(req, res) => {
         await favorite.removeOne(req, res)
+    })
+
+const cart = require("./service/cart/cart")
+app.route("/api/cart")
+    .get(async(req, res) => {
+        await cart.getCartCars(req, res)
+    })
+    .post(async(req, res) => {
+        await cart.addOne(req, res)
+    })
+    .patch(async(req, res) => {
+        await cart.updateOne(req, res)
+    })
+    .delete(async(req, res) => {
+        await cart.removeOne(req, res)
     })
 
 // Processing extra methods for getting car data

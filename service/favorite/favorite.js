@@ -1,3 +1,5 @@
+const { findOrCreate } = require("../../utilities")
+
 const Favorite = require("../../model/favorite")
 const Car = require("../../model/car")
 
@@ -13,11 +15,11 @@ exports.addOne = async(req, res) => {
 
     await Favorite.updateOne({user}, {$set: modifying})
         .then(() => {
-            console.log(`Car: ${car} was added as a favorite successfull by user: ${user}`)
+            console.log(`Car: ${car} was added as a favorite successful by user: ${user}`)
             res.json({error: false})
         })
         .catch(error => {
-            console.log(`Error while adding car ${car} as fav of user: ${user}`)
+            console.log(`Error while adding the car ${car} as fav of user: ${user}`)
             console.log(error)
             res.json({error: true})
         })
@@ -37,11 +39,11 @@ exports.removeOne = async(req, res) => {
 
     await Favorite.updateOne({user}, {$set: modifying})
         .then(() => {
-            console.log(`Car: ${car} was added as a favorite successfull by user: ${user}`)
+            console.log(`Car: ${car} was removed as a favorite successfull by user: ${user}`)
             res.json({error: false})
         })
         .catch(error => {
-            console.log(`Error while adding car ${car} as fav of user: ${user}`)
+            console.log(`Error while removing car ${car} as fav of user: ${user}`)
             console.log(error)
             res.json({error: true})
         })
@@ -77,6 +79,7 @@ exports.check = async(req, res) => {
         })
 }
 
+// Function to get all the favorite cart based on the user
 exports.getFavoriteCars = async(req, res) => {
     const {user} = req.query
 
@@ -101,31 +104,4 @@ exports.getFavoriteCars = async(req, res) => {
     if(!favorites) return
 
     res.json({favorites})
-}
-
-async function findOrCreate(model, schema) {
-    const item = await model.findOne(schema)
-        .then(itemFound => {
-            if(itemFound == null) {
-                console.log("Item doesn't exist")
-                return null
-            }
-
-            console.log("Item was found successful")
-            return itemFound
-        })
-        .catch(error => {
-            console.log("Error while creating item")
-            console.log(error)
-            return null
-        })
-
-    if(item != null) {
-        return item
-    }
-
-    const newItem = new model(schema)
-    await newItem.save()
-
-    return newItem
 }

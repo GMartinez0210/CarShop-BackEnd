@@ -281,10 +281,10 @@ exports.byBrand = async(req, res) => {
 
 // Function to read cars based on the brand and model
 exports.byBrandAndModel = async(req, res) => {
-    const gotBrandName = req.query.brand
-    const gotModelName = req.query.model
+    const gotBrandName = new RegExp(req.query.brand)
+    const gotModelName = new RegExp(req.query.model)
 
-    const brands = await Brand.find({name: RegExp(gotBrandName)})
+    const brands = await Brand.find({name: gotBrandName})
         .then(brands => {
             if(!brands) {
                 console.log("No brands found")
@@ -300,7 +300,7 @@ exports.byBrandAndModel = async(req, res) => {
             console.log(error)
             res.json({error: true})
             return null
-        })
+        })    
 
     if(!brands) return
 
@@ -308,7 +308,7 @@ exports.byBrandAndModel = async(req, res) => {
 
     const descriptions = await Description.find({
         brand: brandIDs, 
-        model: RegExp(gotModelName)
+        model: gotModelName
         })
         .then(descriptions => {
             if(!descriptions) {
@@ -326,7 +326,7 @@ exports.byBrandAndModel = async(req, res) => {
             console.log(error)
             res.json({error: true})
             return null
-        })
+        })    
 
     if(!descriptions) return
 

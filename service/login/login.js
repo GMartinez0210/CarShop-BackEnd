@@ -1,16 +1,14 @@
 const bcrypt = require("bcrypt")
+
 const User = require("../../model/user")
 
+// * Basic login
+// Function to get the session
 exports.getSession = (req, res) => {
     const userID = req.query.user
     const sessionUserID = req.session.userID
 
-    if(!userID) {
-        res.json({loggedIn: false})
-        return
-    }
-
-    if(!sessionUserID) {
+    if(!userID || !sessionUserID) {
         res.json({loggedIn: false})
         return
     }
@@ -23,6 +21,7 @@ exports.getSession = (req, res) => {
     res.json({loggedIn: true, userID: sessionUserID})
 }
 
+// Function to create a session
 exports.createSession = async (req, res) => {
     const {email, password} = req.body
 
@@ -54,6 +53,7 @@ exports.createSession = async (req, res) => {
         })
 }
 
+// Function to delete a session
 exports.deleteSession = async (req, res) => {
     req.session.user = null
     console.log("Session regenerated again")
