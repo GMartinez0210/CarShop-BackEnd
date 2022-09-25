@@ -134,13 +134,13 @@ exports.createOne = async(req, res) => {
                 .catch(error => {
                     console.log(`Error while creating the user: ${user}`)
                     console.log(error)
-                    res.json({error: true})
+                    res.status(400).json({error: true})
                 })
         })
         .catch(error => {
             console.log(`Error while finding the user with email: ${email}`)
             console.log(error)
-            res.json({error: true})
+            res.status(400).json({error: true})
         })
 }
 
@@ -148,9 +148,9 @@ exports.createOne = async(req, res) => {
 exports.updateOne = async(req, res) => {
     const {_id, fullname, email, password} = req.body
 
-    if(!_id || !fullname || !email || !password) {
-        console.log("Missing a parameter")
-        res.json({user: null})
+    if(!_id) {
+        console.log("Missing the _id")
+        res.json({user: {}})
         return
     }
 
@@ -163,7 +163,7 @@ exports.updateOne = async(req, res) => {
         password: hash
     }
 
-    const userUpdated = await User.updateOne(_id, {$set: user})
+    const userUpdated = await User.findByIdAndUpdate(_id, {$set: user})
         .then(userUpdated => {
             console.log(`Account ${_id} was updated successfully`)
             return userUpdated
@@ -273,15 +273,23 @@ exports.updatePhoto = async (req, res) => {
             }
         }
 
-        await User.findByIdAndUpdate(_id, {$set: modifying})
+        const userUpdated = await User.findByIdAndUpdate(_id, {$set: modifying})
             .then(user => {
                 console.log(`User: ${user._id} was found and updated`)
-                res.json({user})
+                return user
             })
             .catch(error => {
                 console.log(`Error while finding and updating user: ${_id}`)
                 console.log(error)
                 res.json({error: true})
+            })
+
+        await User.findById(userUpdated._id)
+            .then(user => res.status(200).json({user}))
+            .catch(error => {
+                console.log(`Error while finding the user ${userUpdated._id}`)
+                console.log(error)
+                res.status(400).json({error: true})
             })
     })
 }

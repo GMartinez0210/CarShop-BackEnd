@@ -8,9 +8,12 @@ const session = require("express-session")
 const cookieParser = require("cookie-parser")
 
 const passport = require("passport")
+const LocalStrategy =  require("passport-local")
 const GoogleStrategy = require("passport-google-oauth20")
+const FacebookStrategy = require("passport-facebook")
 
 const path = require("path")
+const bcrypt = require("bcrypt")
 
 const url = process.env.HOST
 const option = {useNewUrlParser: true}
@@ -82,6 +85,38 @@ passport.use(new GoogleStrategy({
     })
 )
 
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_CLIENT_ID,
+    clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+    callbackURL: process.env.FACEBOOK_CALLBACK_URL,
+    },
+    function(accessToken, refreshToken, profile, cb) {
+        console.log(profile)
+        
+        User.findOrCreate({ facebookId: profile.id }, function (err, user) {
+            return cb(err, user)
+        })
+    }
+))
+
+passport.use(new LocalStrategy((username, password, done) => {
+    User.findOne({email: username}, function (error, user) {
+        if (error) { 
+            return done(error) 
+        }
+
+        if (!user) { 
+            return done(null, false)
+        }
+        
+        if (!bcrypt.compareSync(password, user.password)) { 
+            return done(null, false)
+        }
+        
+        return done(null, user)
+    })
+}))
+
 // Processing the log in/ sing in using Google
 app.get("/auth/google",
     passport.authenticate("google", { scope: ["profile"] })
@@ -94,38 +129,46 @@ app.get("/auth/google/rentit",
     }
 )
 
+app.get('/auth/facebook', 
+    passport.authenticate('facebook')
+)
+
+app.get('/auth/facebook/rentit',
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    function(req, res) {
+        res.redirect('/');
+    }
+)
+
 // Processing the log in/ sign in service
 const login = require("./service/login/login")
+
 app.route("/api/login")
     .get(function(req, res) {
         login.getSession(req, res)
     })
-    .post(async(req, res) => {
-        // TODO Fix the login process
-        // TODO Make the passport do it
-        // TODO Asimilate the changes in the frontend
-        
-        //await login.createSession(req, res)
-        
-        const user = new User({
-            email: req.body.email,
-            password: req.body.password
-        })
-    
-        console.log(user)
+    .post(function(req, res) {
+        const {username, password} = req.body
+        const user = new User({email: username, password})
 
-        /*
         req.login(user, function(error) {
             if(error) {
+                console.log("Error while logging")
                 console.log(error)
                 return
             }
-    
-            passport.authenticate("local")(req, res, function() {
-                res.redirect("/home")
+
+            passport.authenticate("local")(req, res, function() {                
+                const {req: {user: userLogged}} = res
+
+                const userNoPassword = {
+                    ...userLogged._doc,
+                    password: undefined
+                }
+
+                res.json({user: userNoPassword})
             })
         })
-        */
     })
     .delete(async(req, res) => {
         await login.deleteSession(req, res)
@@ -186,9 +229,9 @@ app.route("/api/car")
         await car.createOne(req, res)
     })
     .patch(async(req, res) => {
-        const action = req.body.ACTION || "info"
+        const action = req.query.action || "info"
 
-        if(action == "imagenes") {
+        if(action == "images") {
             await car.updateImages(req, res)
             return
         }

@@ -500,7 +500,7 @@ exports.readAll = async(req, res) => {
 }
 
 // Function to update the car info
-exports.updateOne = async(req, res) => {
+exports.updateInfo = async(req, res) => {
     const { licensePlate, price, 
         about, user, _id } = req.body
     
