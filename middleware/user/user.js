@@ -5,7 +5,8 @@ const User = require("../../model/user")
 const {ErrorUser} = require("../../utilities/error")
 
 // * Instancing the utities
-const {ObjectNotEmptyValues, findOrCreate, generateHash} = require("../../utilities/utils")
+const {ObjectNotEmptyValues, findOrCreate, 
+    generateHash} = require("../../utilities/utils")
 
 // * Function to create a user
 /**

@@ -33,3 +33,21 @@ module.exports.ErrorPhoto = message => {
     const error = new PhotoError(message)
     return error
 }
+
+// * CAR ERROR
+class CarError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "Car Error"
+    }
+}
+
+/**
+ * A function which creates an error for car
+ * @param message - The text that will be displayed in the error 
+ * @returns - An error from the class CarError
+ */
+module.exports.ErrorCar = message => {
+    const error = new CarError(message)
+    return error
+}

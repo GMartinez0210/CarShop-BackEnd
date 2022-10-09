@@ -8,6 +8,7 @@ const Description = require("../../model/description")
 const Car = require("../../model/car")
 
 const { findOrCreate } = require("../../utilities")
+const { userRead } = require("../../middleware/user/user")
 
 const storage = multer.diskStorage({
     destination: "image/car",
@@ -16,12 +17,33 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({
-    storage
-}).array("images", 5)
+const upload = multer({storage}).array("images", 5)
 
-// Function to create a car
-exports.createOne = async(req, res) => {
+// * Function to create a car
+module.exports.testCreateOne = async(req, res) => {
+    upload(req, res, async function(error) {
+        if(error) {
+            res.status(400).json({error, car: []})
+            return
+        }
+
+        const { licensePlate, brand, model, price, about,
+            engine, gears, seats, user: userID } = req.body
+
+        const images = req.files
+
+        const {error: userError, user} = await userRead(userID)
+
+        if(userError) {
+            res.status(400).json({error: userError, user})
+            return
+        }
+
+        
+    })
+}
+
+module.exports.createOne = async(req, res) => {
     upload(req, res, async function(error){
         if(error) {
             console.log("Error in upload function")
@@ -123,7 +145,7 @@ exports.createOne = async(req, res) => {
 }
 
 // Function to get a car
-exports.readOne = async(req, res) => {
+module.exports.readOne = async(req, res) => {
     const {_id} = req.query
 
     if(!_id) {
@@ -226,7 +248,7 @@ exports.readOne = async(req, res) => {
 }
 
 // Function to get many cars by many ids
-exports.readMany = async(req, res) => {
+module.exports.readMany = async(req, res) => {
     const {_id} = req.query
 
     if(!_id) {
@@ -368,7 +390,7 @@ exports.readMany = async(req, res) => {
 }
 
 // Function to get all the cars
-exports.readAll = async(req, res) => {
+module.exports.readAll = async(req, res) => {
     const brands = await Brand.find()
         .then(brands => {
             if(!brands) {
@@ -500,7 +522,7 @@ exports.readAll = async(req, res) => {
 }
 
 // Function to update the car info
-exports.updateInfo = async(req, res) => {
+module.exports.updateInfo = async(req, res) => {
     const { licensePlate, price, 
         about, user, _id } = req.body
     
@@ -528,7 +550,7 @@ exports.updateInfo = async(req, res) => {
 }
 
 // Function to update the car description
-exports.updateDescription = async(req, res) => {
+module.exports.updateDescription = async(req, res) => {
     const { brand, model, engine, 
         gears, seats, _id } = req.body
 
@@ -612,7 +634,7 @@ exports.updateDescription = async(req, res) => {
 }
 
 // Function to update the car images
-exports.updateImages = async(req, res) => {
+module.exports.updateImages = async(req, res) => {
     upload(req, res, async function(error) {
         if(error) {
             console.log("Error in upload function")
@@ -700,7 +722,7 @@ exports.updateImages = async(req, res) => {
 }
 
 // Function to delete a car
-exports.deleteOne = async(req, res) => {
+module.exports.deleteOne = async(req, res) => {
     const _id = req.body._id
 
     if(!_id) {
@@ -743,7 +765,7 @@ exports.deleteOne = async(req, res) => {
 }
 
 // Function to delete many cars based on user's id
-exports.deleteMany = async(req, res) => {
+module.exports.deleteMany = async(req, res) => {
     const {_id} = req.body
 
     if(!_id) {
@@ -763,3 +785,6 @@ exports.deleteMany = async(req, res) => {
             res.json({error: true})
         })
 }
+
+// ! 765 Lines before refactoring
+// ? Lines after refactoring

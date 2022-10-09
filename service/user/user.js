@@ -17,7 +17,7 @@ const {userCreateOne, userRead, userUpdateOne,
 const { photoFindByIdAndDelete, photoCreateOne } = require("../../middleware/photo/photo")
 
 // * Function to create an account
-exports.createOne = async(req, res) => {
+module.exports.createOne = async(req, res) => {
     const {fullname, email, password} = req.body
     const {error, user} = await userCreateOne({fullname, email, password})
     
@@ -31,14 +31,7 @@ exports.createOne = async(req, res) => {
 
 // * Function to read the users
 // TODO Use the custom error for this function
-/**
- * returns all users information from the database
- * with the exception of their passwords
- * @param req - The request from http
- * @param res - The response from http
- * @returns An array of users
- */
-exports.readOne =  async (req, res) => {
+module.exports.readOne =  async (req, res) => {
     const query = Object.entries(req.query).filter(items => items[1])
 
     if(!query.length) {
@@ -59,7 +52,7 @@ exports.readOne =  async (req, res) => {
     return res.status(200).json({error, user})
 }
 
-exports.readMany =  async (req, res) => {
+module.exports.readMany =  async (req, res) => {
     const params = {...req.query}
 
     const {error, user} = await userRead(params)
@@ -71,7 +64,7 @@ exports.readMany =  async (req, res) => {
     return res.status(200).json({error, user})
 }
 
-exports.readAll =  async (req, res) => {
+module.exports.readAll =  async (req, res) => {
     const {error, user} = await userRead()
 
     if(error) {
@@ -82,7 +75,7 @@ exports.readAll =  async (req, res) => {
 }
 
 // * Function to update an account
-exports.updateOne = async(req, res) => {
+module.exports.updateOne = async(req, res) => {
     const {_id, fullname, email, password} = req.body
 
     const hash = password && generateHash(password)
@@ -100,7 +93,7 @@ exports.updateOne = async(req, res) => {
 }
 
 // * Function to update the user's photo
-exports.updatePhoto = async(req, res) => {
+module.exports.updatePhoto = async(req, res) => {
     upload(req, res, async function(error) {
         if(error) {
             res.status(400).json({error, update: false})
@@ -166,7 +159,7 @@ exports.updatePhoto = async(req, res) => {
 }
 
 // * Function to delete an account
-exports.deleteOne = async(req, res) => {
+module.exports.deleteOne = async(req, res) => {
     const {_id} = req.body
 
     const {error, user} = await userDeleteOne(_id)

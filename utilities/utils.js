@@ -3,7 +3,8 @@ require("dotenv").config()
 const bcrypt = require("bcrypt")
 
 // * Instancing the custom errors
-const {ErrorUser} = require("./error")
+// ?  Error User doesn't use
+// const {ErrorUser} = require("./error")
 
 /**
  * It checks if an item exists in the database, if it doesn't, it creates it.
@@ -11,7 +12,7 @@ const {ErrorUser} = require("./error")
  * @param schema - An object 
  * @returns An object with the error, if there's one, and the item found or created
  */
-exports.findOrCreate = async(model, schema) => {
+module.exports.findOrCreate = async(model, schema) => {
     const aux = schema.password
     schema.password = undefined
     schema = this.ObjectNotEmptyValues(schema)
@@ -39,7 +40,7 @@ exports.findOrCreate = async(model, schema) => {
  * @param schema - The schema based on the model
  * @returns an object with an error and an item.
  */
- exports.find = async(model, schema) => {
+ module.exports.find = async(model, schema) => {
     const {error, item} = await model.findOne(schema)
         .then(item => {
             if(!item) {
@@ -65,7 +66,7 @@ exports.findOrCreate = async(model, schema) => {
  * @param schema - The schema based on the model 
  * @returns an object with an error and an item.
  */
- exports.create = async(model, schema) => {
+ module.exports.create = async(model, schema) => {
     const newItem = new model(schema)
 
     const {error, item} = await newItem.save()
@@ -80,7 +81,7 @@ exports.findOrCreate = async(model, schema) => {
  * @param schema - The object you want to filter
  * @returns an object without any empty value
  */
-exports.ObjectNotEmptyValues = schema => {
+module.exports.ObjectNotEmptyValues = schema => {
     const entries = Object.entries(schema)
     const filtered = entries.filter(items => items[1])
     const object = Object.fromEntries(filtered) 
@@ -92,7 +93,7 @@ exports.ObjectNotEmptyValues = schema => {
  * It takes a string and returns it after being hashed
  * @param string - the string that will be hashed
  */
-exports.generateHash = string => {
+module.exports.generateHash = string => {
     const salt = bcrypt.genSaltSync(10)
     const hash = bcrypt.hashSync(string, salt)
 
