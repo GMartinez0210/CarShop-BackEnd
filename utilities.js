@@ -4,7 +4,7 @@
  * @param schema - An object 
  * @returns a promise.
  */
-module.exports.findOrCreate = async (model, schema) => {
+exports.findOrCreate = async (model, schema) => {
     const item = await model.findOne(schema)
         .then(itemFound => {
             if(itemFound == null) {

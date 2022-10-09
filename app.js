@@ -27,7 +27,6 @@ mongoose.connect(url, option, error => {
     console.log("Connected to the database")
 })
 
-
 // Instancing the app server
 const app = express()
 
@@ -44,7 +43,7 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         //httpOnly: true,
-        //sameSite: "strict",
+        sameSite: "strict",
         //secure: true,
         expires: 60 * 60 * 24 * 7
     }
@@ -76,9 +75,7 @@ passport.use(new GoogleStrategy({
     callbackURL: process.env.GOOGLE_CALLBACK_URL,
     userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
     },
-    function(accessToken, refreshToken, profile, cb) {
-        console.log(profile)
-        
+    function(accessToken, refreshToken, profile, cb) {        
         User.findOrCreate({googleId: profile.id}, function(error, user) {
             return cb(error, user)
         })
@@ -178,37 +175,25 @@ app.route("/api/login")
 const user = require("./service/user/user")
 app.route("/api/user")
     .get(async(req, res) => {
-        const {_id, email} = req.query
-
-        if(_id) {
-            user.readById(req, res)
-            return
-        }
-
-        if(email) {
-            user.readOne(req, res)
-            return
-        }
-
-        res.json({error: true})
+        await user.readOne(req, res)
     })
     .post(async(req, res) => {
         await user.createOne(req, res)
     })
     .patch(async(req, res) => {
-        const {action} = req.query
+        const action = req.query.action || "user"
 
-        if(action == "user") {
+        if(action === "user") {
             await user.updateOne(req, res)
             return
         }
         
-        if (action == "photo") {
+        if (action === "photo") {
             await user.updatePhoto(req, res)
             return
         }
     
-        res.json({error: true})
+        res.json({error: new Error("Parameter given as the action is wrong")})
     })
     .delete(async(req, res) => {
         await user.deleteOne(req, res)
@@ -216,6 +201,11 @@ app.route("/api/user")
 
 app.route("/api/users")
     .get(async(req, res) => {
+        if(req.query) {
+            await user.readMany(req, res)
+            return
+        }
+
         await user.readAll(req, res)
     })
 
@@ -254,7 +244,7 @@ app.route("/api/car")
 
 app.route("/api/cars")
     .get(async(req, res) => {
-        if(req.query._id) {
+        if(req.query) {
             await car.readMany(req, res)
             return
         }

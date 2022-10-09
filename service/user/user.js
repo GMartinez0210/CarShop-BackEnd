@@ -1,14 +1,3 @@
-// * Requiring the libreries
-require("dotenv").config()
-const bcrypt = require("bcrypt")
-const fs = require("fs")
-
-//const round = +process.env.ROUND_HASH
-
-// * Instancing the models
-const User = require("../../model/user")
-const Photo = require("../../model/photo")
-
 // * Instancing multer to upload the profile image
 const multer = require("multer")
 
@@ -19,189 +8,102 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({
-    storage
-}).single("photo")
+const upload = multer({storage}).single("photo")
 
-// * Function to read by email one user
-exports.readOne = async(req, res) => {
-    const { email } = req.query
+const { generateHash } = require("../../utilities/utils")
 
-    if(!email) {
-        console.log("No parameter given")
-        res.json({user: null})
-        return
-    }
-
-    await User.findOne({email})
-        .then(user => {
-            if(!user) {
-                console.log("No user found")
-                res.json({user: null})
-                return
-            }
-
-            console.log("User was found successful")
-            res.json({user})
-        })
-        .catch(error => {
-            console.log(`Error while finding the user with email: ${email}`)
-            console.log(error)
-            res.json({error: true})
-        })
-}
-
-// * Function to read by id one user
-exports.readById = async(req, res) => {
-    const {_id} = req.query
-
-    if(!_id) {
-        console.log("No parameter given")
-        res.json({user: null})
-        return
-    }
-
-    await User.findById(_id)
-        .then(user => {
-            if(user == null) {
-                console.log("No user")
-                res.json({user: null})
-                return
-            }
-    
-            console.log("User found sucessful")
-            res.json({user})
-        })
-        .catch(error => {
-            console.log(`Error while finding the user: ${_id}`)
-            console.log(error)
-            res.json({error: true})
-        })
-}
-
-// * Function to read all the users
-exports.readAll = async(req, res) => {
-    await User.find()
-        .then(users => {
-            if(users.length == 0) {
-                console.log("No users")
-                res.json({users: null})
-                return
-            }
-
-            console.log(`${users.length} users found`)
-            res.json({users})
-        })
-        .catch(error => {
-            console.log(`Error while finding all the users`)
-            console.log(error)
-            res.json({error: true})
-        })
-}
+const {userCreateOne, userRead, userUpdateOne, 
+    userDeleteOne} = require("../../middleware/user/user")
+const { photoFindByIdAndDelete, photoCreateOne } = require("../../middleware/photo/photo")
 
 // * Function to create an account
 exports.createOne = async(req, res) => {
     const {fullname, email, password} = req.body
-
-    if(!fullname || !email || !password) {
-        console.log("Missing a parameter")
-        res.json({user: null})
-        return
+    const {error, user} = await userCreateOne({fullname, email, password})
+    
+    if(error) {
+        res.status(400).json({error, user})
+        return 
     }
 
-    await User.findOne({email})
-        .then(async(userFound) => {
-            if(userFound != null) {
-                console.log("Email taken")
-                res.json({taken: true})
-                return
-            }
+    res.status(200).json({error, user})
+}
 
-            const salt = bcrypt.genSaltSync(+process.env.ROUND_HASH)
-            const hash = bcrypt.hashSync(password, salt)
-    
-            const user = new User({
-                fullname,
-                email,
-                password: hash
-            })
+// * Function to read the users
+// TODO Use the custom error for this function
+/**
+ * returns all users information from the database
+ * with the exception of their passwords
+ * @param req - The request from http
+ * @param res - The response from http
+ * @returns An array of users
+ */
+exports.readOne =  async (req, res) => {
+    const query = Object.entries(req.query).filter(items => items[1])
 
-            await user.save()
-                .then(userCreated => {
-                    console.log("User created successful")
-                    res.json({user: userCreated})
-                })
-                .catch(error => {
-                    console.log(`Error while creating the user: ${user}`)
-                    console.log(error)
-                    res.status(400).json({error: true})
-                })
-        })
-        .catch(error => {
-            console.log(`Error while finding the user with email: ${email}`)
-            console.log(error)
-            res.status(400).json({error: true})
-        })
+    if(!query.length) {
+        const error = new Error("No params for readOne() function in user's service")
+        error.name = "No params"
+        console.log(error)
+        return res.status(400).json({error: error.name, user: []})
+    }
+
+    const params = Object.fromEntries(query)
+
+    const {error, user} = await userRead(params)
+
+    if(error) {
+        return res.status(400).json({error, user})
+    }
+
+    return res.status(200).json({error, user})
+}
+
+exports.readMany =  async (req, res) => {
+    const params = {...req.query}
+
+    const {error, user} = await userRead(params)
+
+    if(error) {
+        return res.status(400).json({error, user})
+    }
+
+    return res.status(200).json({error, user})
+}
+
+exports.readAll =  async (req, res) => {
+    const {error, user} = await userRead()
+
+    if(error) {
+        return res.status(400).json({error, user})
+    }
+
+    return res.status(200).json({error, user})
 }
 
 // * Function to update an account
 exports.updateOne = async(req, res) => {
     const {_id, fullname, email, password} = req.body
 
-    if(!_id) {
-        console.log("Missing the _id")
-        res.json({user: {}})
+    const hash = password && generateHash(password)
+
+    const options = {_id, fullname, email, password: hash}
+
+    const {error, update} = await userUpdateOne(options)
+
+    if(error) {
+        res.status(400).json({error, update})
         return
     }
 
-    const salt = bcrypt.genSaltSync(+process.env.ROUND_HASH)
-    const hash = bcrypt.hashSync(password, salt)
-
-    const user = {
-        fullname,
-        email,
-        password: hash
-    }
-
-    const userUpdated = await User.findByIdAndUpdate(_id, {$set: user})
-        .then(userUpdated => {
-            console.log(`Account ${_id} was updated successfully`)
-            return userUpdated
-        })
-        .catch(error => {
-            console.log(`Error while updating the user ${_id}`)
-            console.log(error)
-            res.json({error: true})
-            return null
-        })
-
-    if(!userUpdated) return
-
-    await User.findById(userUpdated._id)
-        .then(user => {
-            if(user == null) {
-                console.log("No user")
-                res.json({user: null})
-                return
-            }
-
-            console.log("User found sucessful")
-            res.json({user})
-        })
-        .catch(error => {
-            console.log(`Error while finding the user: ${_id}`)
-            console.log(error)
-            res.json({error: true})
-        })
+    res.status(200).json({error, update})
 }
 
-// Function to update the user's photo
-exports.updatePhoto = async (req, res) => {
+// * Function to update the user's photo
+exports.updatePhoto = async(req, res) => {
     upload(req, res, async function(error) {
         if(error) {
-            console.log("Error in upload function")
-            console.log(error)
-            res.json({error: true})
+            res.status(400).json({error, update: false})
             return
         }
 
@@ -209,102 +111,70 @@ exports.updatePhoto = async (req, res) => {
         const photo = req.file
 
         if(!_id || !photo) {
-            console.log("Missing a parameter")
-            res.json({user: null})
+            res.status(400).json({error, update: false})
             return
         }
 
-        const user = await User.findById(_id)
-            .then(user => {
-                if(user == null) {
-                    console.log(`Not found user: ${_id}`)
-                    res.json({user})
-                    return null
-                }
+        const {error: userError, user: [user]} = await userRead({_id})
 
-                console.log(`User ${_id} was found successful`)
-                return user
-            })
-            .catch(error => {
-                console.log(`Error while finding the user: ${_id}`)
-                console.log(error)
-                res.json({error: true})
-            })
-        
-        if(user == null) return
-
-        if(user.photo) {
-            await Photo.findByIdAndDelete(user.photo)
-                .then(photo => {
-                    fs.unlinkSync("./image/profile/"+photo.name)
-                    console.log(`Photo ${photo._id} was found and deleted successful`)
-                })
-                .catch(error => {
-                    console.log(`Error while finding and deleting the photo: ${user.photo}`)
-                    console.log(error)
-                })
+        if(userError) {
+            return res.status(400).json({error, update: false})
         }
 
-        const newPhoto = new Photo({
+        if(user.photo) {
+            const photoId = user.photo._id
+            const {error: photoError} = await photoFindByIdAndDelete(photoId)
+            
+            if(photoError) {
+                res.status(400).json({error: photoError, update: false})
+                return
+            }
+        }
+
+        const photoSchema = {
             name: photo.filename,
             photo: {
                 data: photo.filename,
                 contentType: photo.mimetype
             }
-        })
+        }
 
-        const photoSaved = await newPhoto.save()
-            .then(photo => {
-                console.log(`Photo ${photo._id} saved successful`)
-                return photo
-            })
-            .catch(error => {
-                console.log(`Error while saving the photo ${newPhoto}`)
-                console.log(error)
-                res.json({error: true})
-            })
-                
-        if(!photoSaved) return
+        const {error: photoError, photo: photoCreated} = await photoCreateOne(photoSchema)
 
-        const modifying = {
+        if(photoError) {
+            res.status(400).json({error: photoError, update: false})
+            return
+        }
+
+        const options = {
+            _id,
             photo: {
-                _id: photoSaved._id,
-                name: photoSaved.name
+                _id: photoCreated._id,
+                name: photoCreated.name
             }
         }
 
-        const userUpdated = await User.findByIdAndUpdate(_id, {$set: modifying})
-            .then(user => {
-                console.log(`User: ${user._id} was found and updated`)
-                return user
-            })
-            .catch(error => {
-                console.log(`Error while finding and updating user: ${_id}`)
-                console.log(error)
-                res.json({error: true})
-            })
+        const {error: errorUpdated, update} = await userUpdateOne(options)
 
-        await User.findById(userUpdated._id)
-            .then(user => res.status(200).json({user}))
-            .catch(error => {
-                console.log(`Error while finding the user ${userUpdated._id}`)
-                console.log(error)
-                res.status(400).json({error: true})
-            })
+        if(errorUpdated) {
+            res.status(400).json({error: errorUpdated, update})
+            return
+        }
+    
+        res.status(200).json({error: errorUpdated, update})
     })
 }
+
 // * Function to delete an account
 exports.deleteOne = async(req, res) => {
     const {_id} = req.body
 
-    await User.findByIdAndDelete(_id)
-        .then(user => {
-            console.log(`User with ID: ${_id} was deleted`)
-            res.json({user})
-        })
-        .catch(error => {
-            console.log(`Error while deleting the user ${_id}`)
-            console.log(error)
-            res.json({error: true})
-        })
+    const {error, user} = await userDeleteOne(_id)
+
+    if(error) {
+        res.status(400).json({error, user})
+        return
+    }
+
+    res.status(200).json({error, user})
 }
