@@ -3,35 +3,60 @@ const fs = require("fs")
 
 // * Requiring some models
 const Image = require("../../model/image")
+const { ErrorImage } = require("../../utilities/error")
 
-// * Requiring the utils functions
-const utils = require("../../utilities/utils")
+module.exports.imagesCreateManySchemas = imageArray => {
+    const images = imageArray?.map(imageDocument => {
+        const image = new Image({
+            name: imageDocument.filename,
+            image: {
+                data: imageDocument.filename,
+                contentType: imageDocument.mimetype
+            }
+        })
+        return image 
+    })
 
-// * Function to create a new image
-/**
- * Function to create a image, inserting it into the database
- * @param schema - An object based on the image's schema 
- * @returns returns an object of all the data about the image recently created 
- */
-module.exports.imageCreateOne = async(schema) => {
-    const {error, item: image} = await utils.create(Image, schema)
-    return {error, image}
+    return images
 }
 
+module.exports.imageCreateMany = async(imageArray) => {
+    const {error, images} = await Image.insertMany(imageArray)
+        .then(images => ({error: null, images}))
+        .catch(error => ({error, images: []}))
 
-// * Function to find and delete images
-/**
- * A function which find a user image by its _id and delete it
- * @param _id - An String or an Array of the user's image ids 
- * @returns An object with all the image information 
- */
-module.exports.imageFindByIdAndDelete = async(_id) => {
-    const image = await Image.findByIdAndDelete(_id)
-        .then(image => {
-            fs.unlinkSync("./image/profile/"+image.name)
-            return {error: null, ...image._doc}
+    return {error, images}
+}
+
+module.exports.imageDeleteManyFromFolder = imagesArray => {
+    const response = {
+        error: null,
+        deleted: null
+    }
+
+    try {
+        imagesArray?.forEach(name => {
+            const path = "./image/car/"+name
+            fs.unlinkSync(path, err => {
+                if (err) {
+                    throw ErrorImage("Error while deleting the images from the folder")
+                }  
+            })
         })
-        .catch(error => ({error, image: null}))
 
-    return image
+        response.deleted = true
+    } 
+    catch (err) {
+        response.error = err
+    }
+    
+    return response
+}
+
+module.exports.imageDeleteMany = async(options) => {
+    const {error, deleted} = Image.deleteMany(options)
+        .then(deleted => ({error: null, deleted: deleted.acknowledged}))
+        .catch(error => ({error, deleted: false}))
+
+    return {error, deleted}
 }

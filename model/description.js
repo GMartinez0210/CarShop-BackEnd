@@ -3,7 +3,8 @@ const mongoose = require("mongoose")
 const description = new mongoose.Schema({
     brand: {
         type: mongoose.SchemaTypes.ObjectId,
-        required: true
+        required: true,
+        ref: "brand"
     },
     model: {
         type: String,

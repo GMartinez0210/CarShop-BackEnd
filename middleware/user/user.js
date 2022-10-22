@@ -47,16 +47,16 @@ module.exports.userRead = async(params) => {
             if(!userFound.length) {
                 return {
                     error: ErrorUser("Error while finding the user(s)"),
-                    user: []
+                    users: []
                 }
             }
 
-            return {error: null, user: userFound}
+            return {error: null, users: userFound}
         })
         .catch(() => {
             return {
                 error: ErrorUser("Error while finding the user(s)"),
-                user: []
+                users: []
             }
         })
 

@@ -1,4 +1,5 @@
-const { findOrCreate } = require("../../utilities")
+// ! ERROR => Using the last findOrCreate from utilities.js
+const { findOrCreate } = require("../../utilities/utils")
 
 const Favorite = require("../../model/favorite")
 const Car = require("../../model/car")

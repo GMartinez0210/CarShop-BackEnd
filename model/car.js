@@ -11,11 +11,13 @@ const car = new mongoose.Schema({
     },
     images: {
         type: [mongoose.SchemaTypes.ObjectId],
-        required: true
+        //required: true,
+        ref: "image"
     },
     description: {
         type: mongoose.SchemaTypes.ObjectId,
-        required: true
+        required: true,
+        ref: "description"
     },
     price: {
         type: Number,

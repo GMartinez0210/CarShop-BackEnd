@@ -5,7 +5,8 @@ const Brand = require("../../model/brand")
 const Description = require("../../model/description")
 const Car = require("../../model/car")
 
-const { findOrCreate } = require("../../utilities")
+// ! ERROR => Using the last findOrCreate from utilities.js
+const { findOrCreate } = require("../../utilities/utils")
 
 // Function to add a car to the user's cart
 exports.addOne = async(req, res) => {

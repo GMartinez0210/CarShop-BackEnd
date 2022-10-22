@@ -2,7 +2,11 @@
 require("dotenv").config()
 const express = require("express")
 const cors = require("cors")
-const mongoose = require("mongoose")
+
+const mongoose = require('mongoose');
+const castAggregation = require('mongoose-cast-aggregation');
+
+mongoose.plugin(castAggregation); 
 
 const session = require("express-session")
 const cookieParser = require("cookie-parser")
@@ -244,7 +248,8 @@ app.route("/api/car")
 
 app.route("/api/cars")
     .get(async(req, res) => {
-        if(req.query) {
+        const {_id} = req.query
+        if(_id) {
             await car.readMany(req, res)
             return
         }

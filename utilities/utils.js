@@ -2,9 +2,7 @@
 require("dotenv").config()
 const bcrypt = require("bcrypt")
 
-// * Instancing the custom errors
-// ?  Error User doesn't use
-// const {ErrorUser} = require("./error")
+const { ErrorItem } = require("./error")
 
 /**
  * It checks if an item exists in the database, if it doesn't, it creates it.
@@ -18,7 +16,7 @@ module.exports.findOrCreate = async(model, schema) => {
     schema = this.ObjectNotEmptyValues(schema)
 
     const { error: findError, 
-        item: findItem } = await this.find(model, schema)
+        item: findItem } = await this.findOne(model, schema)
 
     if(findItem) {
         return { error: findError, item: findItem }
@@ -27,7 +25,7 @@ module.exports.findOrCreate = async(model, schema) => {
     schema.password = aux
 
     const { error: createError, 
-        item: createItem } = await this.create(model, schema)
+        item: createItem } = await this.createOne(model, schema)
 
     return { error: createError, item: createItem }
 }
@@ -40,12 +38,12 @@ module.exports.findOrCreate = async(model, schema) => {
  * @param schema - The schema based on the model
  * @returns an object with an error and an item.
  */
- module.exports.find = async(model, schema) => {
+ module.exports.findOne = async(model, schema) => {
     const {error, item} = await model.findOne(schema)
         .then(item => {
             if(!item) {
                 console.log("Item doesn't exist")
-                return {error: "No item found", item}
+                return {error: ErrorItem("No item found"), item}
             }
 
             console.log("Item was found successful")
@@ -66,7 +64,7 @@ module.exports.findOrCreate = async(model, schema) => {
  * @param schema - The schema based on the model 
  * @returns an object with an error and an item.
  */
- module.exports.create = async(model, schema) => {
+ module.exports.createOne = async(model, schema) => {
     const newItem = new model(schema)
 
     const {error, item} = await newItem.save()
@@ -77,7 +75,8 @@ module.exports.findOrCreate = async(model, schema) => {
 }
 
 /**
- * It takes an object and returns a new object with only the key/value pairs that have a truthy value
+ * It takes an object and returns a new object with only 
+ * the key/value pairs that have a truthy value
  * @param schema - The object you want to filter
  * @returns an object without any empty value
  */

@@ -14,7 +14,7 @@ const utils = require("../../utilities/utils")
  * @returns returns an object of all the data about the photo recently created 
  */
 module.exports.photoCreateOne = async(schema) => {
-    const {error, item: photo} = await utils.create(Photo, schema)
+    const {error, item: photo} = await utils.createOne(Photo, schema)
     return {error, photo}
 }
 

@@ -1,3 +1,21 @@
+// * ITEM ERROR
+class ItemError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "Item Error"
+    }
+}
+
+/**
+ * A function which creates an error for items not specified. 
+ * @param message - The text that will be displayed in the error 
+ * @returns An error from the class ItemError
+ */
+module.exports.ErrorItem = message => {
+    const error = new ItemError(message)
+    return error
+}
+
 // * USER ERROR
 class UserError extends Error {
     constructor(message) {
@@ -9,7 +27,7 @@ class UserError extends Error {
 /**
  * A function which creates an error for users
  * @param message - The text that will be displayed in the error 
- * @returns - An error from the class UserError
+ * @returns An error from the class UserError
  */
 module.exports.ErrorUser = message => {
     const error = new UserError(message)
@@ -27,7 +45,7 @@ class PhotoError extends Error {
 /**
  * A function which creates an error for photos
  * @param message - The text that will be displayed in the error 
- * @returns - An error from the class PhotoError
+ * @returns An error from the class PhotoError
  */
 module.exports.ErrorPhoto = message => {
     const error = new PhotoError(message)
@@ -45,9 +63,27 @@ class CarError extends Error {
 /**
  * A function which creates an error for car
  * @param message - The text that will be displayed in the error 
- * @returns - An error from the class CarError
+ * @returns An error from the class CarError
  */
 module.exports.ErrorCar = message => {
     const error = new CarError(message)
+    return error
+}
+
+// * IMAGE ERROR
+class ImageError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "Image Error"
+    }
+}
+
+/**
+ * A function which creates an error for images
+ * @param message - The text that will be displayed in the error 
+ * @returns An error from the class PhotoError
+ */
+module.exports.ErrorImage = message => {
+    const error = new ImageError(message)
     return error
 }

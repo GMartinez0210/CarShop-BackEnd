@@ -38,12 +38,12 @@ module.exports.readOne =  async (req, res) => {
         const error = new Error("No params for readOne() function in user's service")
         error.name = "No params"
         console.log(error)
-        return res.status(400).json({error: error.name, user: []})
+        return res.status(400).json({error: error.name, user: {}})
     }
 
     const params = Object.fromEntries(query)
 
-    const {error, user} = await userRead(params)
+    const {error, users: [user]} = await userRead(params)
 
     if(error) {
         return res.status(400).json({error, user})
@@ -53,25 +53,25 @@ module.exports.readOne =  async (req, res) => {
 }
 
 module.exports.readMany =  async (req, res) => {
-    const params = {...req.query}
+    const params = req.query
 
-    const {error, user} = await userRead(params)
+    const {error, users} = await userRead(params)
 
     if(error) {
-        return res.status(400).json({error, user})
+        return res.status(400).json({error, users})
     }
 
-    return res.status(200).json({error, user})
+    return res.status(200).json({error, users})
 }
 
 module.exports.readAll =  async (req, res) => {
-    const {error, user} = await userRead()
+    const {error, users} = await userRead()
 
     if(error) {
-        return res.status(400).json({error, user})
+        return res.status(400).json({error, users})
     }
 
-    return res.status(200).json({error, user})
+    return res.status(200).json({error, users})
 }
 
 // * Function to update an account
@@ -108,7 +108,7 @@ module.exports.updatePhoto = async(req, res) => {
             return
         }
 
-        const {error: userError, user: [user]} = await userRead({_id})
+        const {error: userError, users: [user]} = await userRead({_id})
 
         if(userError) {
             return res.status(400).json({error, update: false})
