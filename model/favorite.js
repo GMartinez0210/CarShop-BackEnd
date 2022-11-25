@@ -6,7 +6,7 @@ const favorite = new mongoose.Schema({
         ref: "user",
         required: true
     },
-    car: {
+    cars: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "car"
     }

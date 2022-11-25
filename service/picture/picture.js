@@ -3,7 +3,7 @@ const path = require("path")
 const Photo = require("../../model/photo")
 const Image = require("../../model/image")
 
-exports.getPhoto = async(req, res) => {
+module.exports.getPhoto = async(req, res) => {
     const name = req.params.name
     const photofound = await Photo.findOne({name})
     
@@ -19,7 +19,7 @@ exports.getPhoto = async(req, res) => {
     res.sendFile(photoPath)
 }
 
-exports.getImage = async(req, res) => {
+module.exports.getImage = async(req, res) => {
     const name = req.params.name
     const imagefound = await Image.findOne({name})
 

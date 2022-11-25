@@ -87,3 +87,39 @@ module.exports.ErrorImage = message => {
     const error = new ImageError(message)
     return error
 }
+
+// * CART ERROR
+class CartError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "Cart Error"
+    }
+}
+
+/**
+ * A function which creates an error for carts
+ * @param message - The text that will be displayed in the error 
+ * @returns An error from the class CartError
+ */
+module.exports.ErrorCart = message => {
+    const error = new CartError(message)
+    return error
+}
+
+// * FAVORITE ERROR
+class FavoriteError extends Error {
+    constructor(message) {
+        super(message)
+        this.name = "Favorite Error"
+    }
+}
+
+/**
+ * A function which creates an error for favorites
+ * @param message - The text that will be displayed in the error 
+ * @returns An error from the class FavoriteError
+ */
+module.exports.ErrorFavorite = message => {
+    const error = new FavoriteError(message)
+    return error
+}

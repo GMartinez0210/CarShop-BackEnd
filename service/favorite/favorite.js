@@ -4,8 +4,28 @@ const { findOrCreate } = require("../../utilities/utils")
 const Favorite = require("../../model/favorite")
 const Car = require("../../model/car")
 
+const { favoriteCreateOne } = require("../../middleware/favorite/favorite")
+const { ErrorFavorite } = require("../../utilities/error")
+
 // Function to add a car to the user favorite cars
-exports.addOne = async(req, res) => {
+module.exports.createOne = async(req, res) => {
+    const {user, car} = req.body
+
+    if(!user || !car) {
+        const error = ErrorFavorite("No params given")
+        res.status(400).json({error, create: false})
+        return
+    }
+
+    const options = {user, car}
+    const {error, create} = await favoriteCreateOne(options)
+
+    const status = !error ? 200 : 500
+    
+    res.status(status).json({error, create})
+}
+
+module.exports.addOne = async(req, res) => {
     const {user, car} = req.body
     
     const favorite = await findOrCreate(Favorite, {user})
@@ -27,7 +47,7 @@ exports.addOne = async(req, res) => {
 }
 
 // Function to remove a car from the user favorite cars
-exports.removeOne = async(req, res) => {
+module.exports.removeOne = async(req, res) => {
     const {user, car} = req.body
     console.log("User and Car values")
     console.log(user, car)
@@ -51,7 +71,7 @@ exports.removeOne = async(req, res) => {
 }
 
 // Function to check if it's a favorite
-exports.check = async(req, res) => {
+module.exports.check = async(req, res) => {
     const {user, car} = req.query
 
     await Favorite.findOne({user})
@@ -81,7 +101,7 @@ exports.check = async(req, res) => {
 }
 
 // Function to get all the favorite cart based on the user
-exports.getFavoriteCars = async(req, res) => {
+module.exports.getFavoriteCars = async(req, res) => {
     const {user} = req.query
 
     const favorites = await Favorite.findOne({user})

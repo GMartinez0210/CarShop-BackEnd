@@ -261,6 +261,7 @@ app.route("/api/cars")
     })
 
 // Processing the post service
+// ? Do I make any request for this api service
 const post = require("./service/post/post")
 app.route("/api/post")
     .get(async(req, res) => {
@@ -291,7 +292,8 @@ app.route("/api/favorite")
         await favorite.getFavoriteCars(req, res)
     })
     .post(async(req, res) => {
-        await favorite.addOne(req, res)
+        await favorite.createOne(req, res)
+        //await favorite.addOne(req, res)
     })
     .delete(async(req, res) => {
         await favorite.removeOne(req, res)
@@ -300,16 +302,16 @@ app.route("/api/favorite")
 const cart = require("./service/cart/cart")
 app.route("/api/cart")
     .get(async(req, res) => {
-        await cart.getCartCars(req, res)
+        await cart.getCarts(req, res)
     })
     .post(async(req, res) => {
-        await cart.addOne(req, res)
+        await cart.createOne(req, res)
     })
     .patch(async(req, res) => {
         await cart.updateOne(req, res)
     })
     .delete(async(req, res) => {
-        await cart.removeOne(req, res)
+        await cart.deleteOne(req, res)
     })
 
 // Processing extra methods for getting car data

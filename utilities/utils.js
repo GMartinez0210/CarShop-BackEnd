@@ -74,6 +74,16 @@ module.exports.findOrCreate = async(model, schema) => {
     return {error, item}
 }
 
+module.exports.updateOne = async(params) => {
+    const {model, filter, options} = params
+
+    const {error, update} = await model.updateOne(filter, {$set: options})
+        .then(updated => ({error: null, update: updated.acknowledged}))
+        .catch(error => ({error, update: false}))
+
+    return {error, update}
+}
+
 /**
  * It takes an object and returns a new object with only 
  * the key/value pairs that have a truthy value

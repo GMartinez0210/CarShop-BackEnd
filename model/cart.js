@@ -7,7 +7,10 @@ const cart = mongoose.Schema({
         required: true
     },
     cars: {
-        type: [mongoose.Schema.Types.Mixed],
+        type: [{
+            car: mongoose.Schema.Types.ObjectId,
+            quantity: Number
+        }],
         ref: "car"
     }
 })
